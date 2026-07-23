@@ -1,0 +1,83 @@
+import { createI18n } from 'vue-i18n'
+
+const messages = {
+  ko: {
+    nav: {
+      intro: { title: '사업소개', greeting: '사업단장 인사말', vision: '비전 및 목표', withus: 'WITHUS 인재상', consortium: '컨소시엄 구성', organization: '사업단 조직도', contact: '찾아오시는 길' },
+      curriculum: { title: '교육과정', intro: '교육과정 소개', department: '글로벌지속가능융합학과', subject: '개설과목', microdegree: '마이크로디그리', program: '비교과프로그램' },
+      support: { title: '학생지원', info: '지원제도', club: '동아리', job: '취업정보' },
+      share: { title: '성과공유', result: '우수성과', newsletter: '뉴스레터', cardnews: '카드뉴스' },
+      bulletin: { title: '정보광장', notice: '공지사항', partnerNotice: '참여대학 공지', data: '자료실', faq: 'FAQ', schedule: '사업단 일정' }
+    },
+    header: {
+      subtitle: '인문사회융합인재양성사업단',
+      lms: 'LMS',
+      langToggle: 'ENG'
+    },
+    footer: {
+      address: '서울시 노원구 광운로 20 / TEL 02-940-8271 / FAX 02-940-8319',
+      policy: '개인정보처리방침',
+      copyright: 'COPYRIGHT ⓒ KWANGWOON UNIVERSITY. ALL RIGHTS RESERVED'
+    },
+    home: {
+      performanceTitle: '우수성과',
+      noticeTitle: '공지사항',
+      partnerNoticeTitle: '참여대학 공지',
+      scheduleTitle: '사업단 일정',
+      apply: '신청하기',
+      cardnews: '카드뉴스',
+      faq: 'FAQ'
+    },
+    portal: {
+      sidebar: { mypage: '마이페이지', microdegree: '나노디그리 시뮬레이터', counseling: '학사지도·상담', subjects: '교과목 관리', admin: '관리자' },
+      exit: '홈페이지 바로가기',
+      logout: '로그아웃',
+      notice: '공지사항',
+      quicklinks: '바로가기',
+      recommend: '추천 교과목·프로그램'
+    }
+  },
+  en: {
+    nav: {
+      intro: { title: 'About', greeting: "Director's Message", vision: 'Vision & Goals', withus: 'WITHUS Talent', consortium: 'Consortium', organization: 'Organization', contact: 'Location' },
+      curriculum: { title: 'Curriculum', intro: 'Overview', department: 'Global Sustainability Dept.', subject: 'Courses', microdegree: 'Microdegree', program: 'Extracurricular' },
+      support: { title: 'Student Support', info: 'Support Programs', club: 'Clubs', job: 'Careers' },
+      share: { title: 'Achievements', result: 'Highlights', newsletter: 'Newsletter', cardnews: 'Card News' },
+      bulletin: { title: 'Information', notice: 'Notices', partnerNotice: 'Partner Notices', data: 'Resources', faq: 'FAQ', schedule: 'Schedule' }
+    },
+    header: {
+      subtitle: 'Humanities & Social Sciences Convergence Talent Program',
+      lms: 'LMS',
+      langToggle: 'KOR'
+    },
+    footer: {
+      address: '20 Gwangwoon-ro, Nowon-gu, Seoul / TEL +82-2-940-8271 / FAX +82-2-940-8319',
+      policy: 'Privacy Policy',
+      copyright: 'COPYRIGHT ⓒ KWANGWOON UNIVERSITY. ALL RIGHTS RESERVED'
+    },
+    home: {
+      performanceTitle: 'Highlights',
+      noticeTitle: 'Notices',
+      partnerNoticeTitle: 'Partner Notices',
+      scheduleTitle: 'Program Schedule',
+      apply: 'Apply Now',
+      cardnews: 'Card News',
+      faq: 'FAQ'
+    },
+    portal: {
+      sidebar: { mypage: 'My Page', microdegree: 'Microdegree Simulator', counseling: 'Advising & Counseling', subjects: 'Course Management', admin: 'Admin' },
+      exit: 'Visit Main Site',
+      logout: 'Log Out',
+      notice: 'Notices',
+      quicklinks: 'Quick Links',
+      recommend: 'Recommended for You'
+    }
+  }
+}
+
+export default createI18n({
+  legacy: false,
+  locale: 'ko',
+  fallbackLocale: 'ko',
+  messages
+})
