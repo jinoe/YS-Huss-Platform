@@ -104,7 +104,7 @@ export default {
   align-items: flex-end;
   overflow: hidden;
   color: #fff;
-  background: #0d1a33;
+  background: var(--color-primary-dark);
 }
 
 .hero-bg {
@@ -112,8 +112,8 @@ export default {
   inset: 0;
   background:
     radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.08), transparent 40%),
-    radial-gradient(circle at 85% 75%, rgba(43, 82, 214, 0.35), transparent 45%),
-    linear-gradient(135deg, #0d1a33 0%, #17284d 55%, #1f3866 100%);
+    radial-gradient(circle at 85% 75%, rgba(0, 56, 118, 0.45), transparent 45%),
+    linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 55%, #004a99 100%);
 }
 
 .hero-bg::after {

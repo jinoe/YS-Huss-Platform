@@ -1,11 +1,13 @@
 :root {
-  --color-primary: #17284d;
-  --color-primary-dark: #0d1a33;
-  --color-accent: #2b52d6;
-  --color-text: #1a1a1a;
-  --color-muted: #6b6f76;
-  --color-border: #e5e5e7;
-  --bg-soft: #f6f6f7;
+  /* 연세대학교 디자인센터 전용색상 기준 (Main: YONSEI Blue/White, Sub: Black/Medium Gray/Silver/Medium Dark Gray/Yellow) */
+  --color-primary: #003876;
+  --color-primary-dark: #001f42;
+  --color-accent: #003876;
+  --color-yellow: #fdba30;
+  --color-text: #231f20;
+  --color-muted: #707274;
+  --color-border: #c9cacc;
+  --bg-soft: #f2f3f3;
 
   font: 16px/1.5 system-ui, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
   color-scheme: light;

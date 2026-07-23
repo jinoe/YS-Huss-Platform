@@ -30,6 +30,7 @@ export default {
 <template>
   <div>
     <div class="page-banner">
+      <span class="motif-bar" />
       <h1>사업소개</h1>
     </div>
     <div class="container breadcrumb">
@@ -63,10 +64,21 @@ export default {
 
 <style scoped>
 .page-banner {
+  position: relative;
   background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
   color: #fff;
   padding: 48px 24px;
   text-align: center;
+  overflow: hidden;
+}
+
+.motif-bar {
+  position: absolute;
+  left: 24px;
+  bottom: 0;
+  width: 48px;
+  height: 6px;
+  background: var(--color-yellow);
 }
 
 .page-banner h1 {

@@ -283,17 +283,29 @@ h4 {
 }
 
 .kpi-card {
+  position: relative;
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  overflow: hidden;
 }
 
 .kpi-card.highlight {
   border-color: var(--color-accent);
   background: var(--bg-soft);
+}
+
+.kpi-card.highlight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 5px;
+  background: var(--color-yellow);
 }
 
 .kpi-value {

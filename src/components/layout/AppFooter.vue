@@ -17,7 +17,7 @@ export default {
 <style scoped>
 .app-footer {
   margin-top: auto;
-  background: #f5f5f5;
+  background: var(--bg-soft);
   padding: 32px 0;
   color: var(--color-muted);
   font-size: 13px;

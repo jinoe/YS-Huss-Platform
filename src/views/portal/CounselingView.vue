@@ -295,7 +295,7 @@ export default {
 }
 
 .stars {
-  color: #e8a721;
+  color: var(--color-yellow);
   letter-spacing: 1px;
 }
 

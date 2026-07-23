@@ -72,7 +72,7 @@ export default {
 .portal {
   min-height: 100svh;
   display: flex;
-  background: #f4f6f6;
+  background: var(--bg-soft);
 }
 
 .portal-sidebar {

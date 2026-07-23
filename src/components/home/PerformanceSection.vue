@@ -52,8 +52,19 @@ export default {
 }
 
 .thumb {
+  position: relative;
   aspect-ratio: 4 / 3;
   background: var(--bg-soft) center / cover no-repeat;
+}
+
+.thumb::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 6px;
+  background: var(--color-primary);
 }
 
 .card h3 {

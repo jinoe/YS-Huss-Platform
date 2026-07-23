@@ -404,8 +404,8 @@ export default {
 }
 
 .status.in-progress {
-  background: #fdead2;
-  color: #a3620a;
+  background: var(--color-yellow);
+  color: var(--color-text);
 }
 
 .status.not-taken {

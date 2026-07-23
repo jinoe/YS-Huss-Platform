@@ -119,10 +119,22 @@ h3 {
 }
 
 .profile-card {
+  position: relative;
   background: linear-gradient(160deg, var(--color-primary-dark), var(--color-primary));
   color: #fff;
   border-radius: 16px;
   padding: 28px 24px;
+  overflow: hidden;
+}
+
+.profile-card::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  bottom: 0;
+  width: 40px;
+  height: 6px;
+  background: var(--color-yellow);
 }
 
 .badge {
@@ -258,9 +270,21 @@ h3 {
 }
 
 .recommend-card {
+  position: relative;
   border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 16px;
+  overflow: hidden;
+}
+
+.recommend-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 5px;
+  background: var(--color-primary);
 }
 
 .recommend-title {

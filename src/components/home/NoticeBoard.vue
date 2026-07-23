@@ -51,9 +51,21 @@ export default {
 }
 
 .board {
+  position: relative;
   border-radius: 8px;
   padding: 24px;
   border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.board::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 5px;
+  background: var(--color-primary);
 }
 
 .board h3 {

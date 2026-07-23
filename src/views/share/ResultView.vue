@@ -43,9 +43,21 @@ h3 {
 }
 
 .thumb {
+  position: relative;
   aspect-ratio: 4 / 3;
   background: var(--bg-soft) center / cover no-repeat;
   border-radius: 8px;
+  overflow: hidden;
+}
+
+.thumb::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 6px;
+  background: var(--color-primary);
 }
 
 .title {
