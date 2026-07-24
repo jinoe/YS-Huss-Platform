@@ -14,13 +14,14 @@ export default {
 <template>
   <section class="page">
     <h3>우수성과</h3>
-    <div class="card-grid">
+    <div v-if="items.length" class="card-grid">
       <router-link v-for="item in items" :key="item.id" :to="`/share/${item.id}`" class="card">
         <div class="thumb" :style="{ backgroundImage: `url(${item.image})` }" />
         <p class="title">{{ item.title }}</p>
         <p class="date">{{ item.date }}</p>
       </router-link>
     </div>
+    <div v-else class="empty-state">게시글이 없습니다.</div>
   </section>
 </template>
 
@@ -78,6 +79,14 @@ h3 {
   font-size: 12px;
   color: var(--color-muted);
   margin: 0;
+}
+
+.empty-state {
+  padding: 80px 0;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 14px;
+  border-top: 1px solid var(--color-border);
 }
 
 @media (max-width: 768px) {

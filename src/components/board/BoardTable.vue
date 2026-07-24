@@ -15,7 +15,7 @@ export default {
 </script>
 
 <template>
-  <table class="board-table">
+  <table v-if="items.length" class="board-table">
     <thead>
       <tr>
         <th class="col-no">번호</th>
@@ -40,6 +40,7 @@ export default {
       </tr>
     </tbody>
   </table>
+  <div v-else class="empty-state">게시글이 없습니다.</div>
 </template>
 
 <style scoped>
@@ -82,6 +83,14 @@ export default {
   font-size: 11px;
   border-radius: 999px;
   padding: 2px 8px;
+}
+
+.empty-state {
+  padding: 80px 0;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 14px;
+  border-top: 1px solid var(--color-border);
 }
 
 @media (max-width: 768px) {

@@ -28,12 +28,13 @@ export default {
     <div class="container notice-grid">
       <div v-for="board in boards" :key="board.titleKey" class="board">
         <h3>{{ $t(board.titleKey) }}</h3>
-        <ul>
+        <ul v-if="board.items.length">
           <li v-for="item in board.items" :key="item.id">
             <router-link :to="`${board.basePath}/${item.id}`" class="item-title">{{ item.title }}</router-link>
             <span class="item-date">{{ item.date }}</span>
           </li>
         </ul>
+        <div v-else class="empty-state">게시글이 없습니다.</div>
       </div>
     </div>
   </section>
@@ -106,6 +107,13 @@ export default {
   flex-shrink: 0;
   color: var(--color-muted);
   font-size: 12px;
+}
+
+.empty-state {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 13px;
 }
 
 @media (max-width: 768px) {
