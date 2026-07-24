@@ -1,67 +1,69 @@
 <script>
 const TRACKS = [
   {
-    key: 'ai',
-    label: 'AI융합 나노디그리',
+    key: 'yonsei',
+    label: '인간중심 AI 미래경험 디자인',
     nanoCredits: 6,
-    requiredCredits: 9,
+    requiredCredits: 12,
     stages: [
       {
         key: 'basic',
         label: '기초',
         courses: [
-          { name: '인공지능개론', credit: 3, required: true, status: 'completed' },
-          { name: '데이터사이언스입문', credit: 3, required: false, status: 'completed' },
-          { name: '파이썬프로그래밍', credit: 3, required: false, status: 'not-taken' }
+          { name: 'Culture and Storytelling', credit: 3, required: true, status: 'completed' },
+          { name: 'AI Motion and Visual Narratives', credit: 3, required: false, status: 'completed' },
+          { name: '사변적사고와 프로세스', credit: 3, required: false, status: 'not-taken' }
         ]
       },
       {
         key: 'advanced',
         label: '심화',
         courses: [
-          { name: '머신러닝응용', credit: 3, required: true, status: 'in-progress' },
-          { name: '딥러닝프로젝트', credit: 3, required: false, status: 'not-taken' },
-          { name: '컴퓨터비전', credit: 3, required: false, status: 'not-taken' }
+          { name: 'Sustainable Development for Future', credit: 3, required: true, status: 'in-progress' },
+          { name: '데이터기반 통합디자인리서치', credit: 3, required: false, status: 'not-taken' },
+          { name: '스페큘레이티브 디자인', credit: 3, required: false, status: 'not-taken' }
         ]
       },
       {
         key: 'capstone',
         label: '캡스톤',
         courses: [
-          { name: 'AI융합캡스톤디자인', credit: 3, required: true, status: 'not-taken' },
-          { name: '산학연계프로젝트', credit: 3, required: false, status: 'not-taken' }
+          { name: 'Future Experience Design', credit: 3, required: true, status: 'not-taken' },
+          { name: 'User Experience Research Methods', credit: 3, required: false, status: 'not-taken' }
         ]
       }
     ]
   },
   {
-    key: 'global',
-    label: '글로벌통상 나노디그리',
+    key: 'handong',
+    label: 'AX 라이프 혁신 디자인',
     nanoCredits: 6,
-    requiredCredits: 9,
+    requiredCredits: 12,
     stages: [
       {
         key: 'basic',
         label: '기초',
         courses: [
-          { name: '국제통상개론', credit: 3, required: true, status: 'completed' },
-          { name: '글로벌비즈니스커뮤니케이션', credit: 3, required: false, status: 'not-taken' }
+          { name: 'AX 내러티브 모션 그래픽스 1', credit: 3, required: true, status: 'completed' },
+          { name: 'Design Thinking', credit: 3, required: false, status: 'not-taken' },
+          { name: 'Design for Future Product 1', credit: 3, required: false, status: 'not-taken' }
         ]
       },
       {
         key: 'advanced',
         label: '심화',
         courses: [
-          { name: '국제무역실무', credit: 3, required: true, status: 'not-taken' },
-          { name: '해외시장분석', credit: 3, required: false, status: 'not-taken' }
+          { name: 'AX 라이프 디자인 스튜디오 1', credit: 3, required: true, status: 'not-taken' },
+          { name: 'Future Life UX Design', credit: 3, required: false, status: 'not-taken' },
+          { name: 'AX Native Design', credit: 3, required: false, status: 'not-taken' }
         ]
       },
       {
         key: 'capstone',
         label: '캡스톤',
         courses: [
-          { name: '글로벌통상캡스톤', credit: 3, required: true, status: 'not-taken' },
-          { name: '해외인턴십연계', credit: 3, required: false, status: 'not-taken' }
+          { name: '스마트 인터페이스 디자인', credit: 3, required: true, status: 'not-taken' },
+          { name: '그래픽 디자인', credit: 3, required: false, status: 'not-taken' }
         ]
       }
     ]
@@ -73,7 +75,7 @@ export default {
   data() {
     return {
       tracks: TRACKS,
-      activeTrack: 'ai',
+      activeTrack: 'yonsei',
       simulationMode: false
     }
   },

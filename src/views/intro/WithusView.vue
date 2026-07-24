@@ -7,27 +7,27 @@ export default {
         {
           letter: 'F',
           title: 'Futures Imagination & Foresight',
-          desc: '미래를 서사적으로 상상하고 사회·문화적 변화를 선제적으로 예측하는 역량 (국립공주대학교 미래 서사·영상·미디어 트랙과 연계)'
+          desc: '미래를 서사적으로 상상하고 사회·문화적 변화를 선제적으로 예측하는 역량'
         },
         {
           letter: 'L',
           title: 'Literacy in Humanities-Grounded AI',
-          desc: '인문사회적 통찰을 바탕으로 AI·디지털 기술을 이해하고 활용하는 역량 (연세대학교 AI 프로토타이핑 랩과 연계)'
+          desc: '인문사회적 통찰을 바탕으로 AI·디지털 기술을 이해하고 활용하는 역량'
         },
         {
           letter: 'A',
           title: 'Alternative Design Intelligence',
-          desc: '미래문해력을 바탕으로 인간 중심의 대안을 구체적으로 설계·구현하는 역량 (한동대학교 UX·서비스 디자인 트랙과 연계)'
+          desc: '미래문해력을 바탕으로 인간 중심의 대안을 구체적으로 설계·구현하는 역량'
         },
         {
           letter: 'S',
           title: 'Societal Transformation Agency',
-          desc: '설계한 대안을 지역사회·산업 현장에서 실천하고 사회적으로 확산하는 역량 (동의대학교 지역 리빙랩·문화 혁신 트랙과 연계)'
+          desc: '설계한 대안을 지역사회·산업 현장에서 실천하고 사회적으로 확산하는 역량'
         },
         {
           letter: 'H',
           title: 'Human-centered Sensemaking',
-          desc: '인간 중심의 관점에서 사회·문화적 의미를 해석하고 가치 전환을 읽어내는 역량 (이화여자대학교 가치·윤리·포용적 문화전략 트랙과 연계)'
+          desc: '인간 중심의 관점에서 사회·문화적 의미를 해석하고 가치 전환을 읽어내는 역량'
         }
       ]
     }

@@ -60,11 +60,6 @@ const router = createRouter({
           component: () => import('../views/curriculum/CurriculumIntroView.vue')
         },
         {
-          path: 'department',
-          name: 'curriculum-department',
-          component: () => import('../views/curriculum/CurriculumDeptView.vue')
-        },
-        {
           path: 'subject',
           name: 'curriculum-subject',
           component: () => import('../views/curriculum/CurriculumSubjectView.vue')

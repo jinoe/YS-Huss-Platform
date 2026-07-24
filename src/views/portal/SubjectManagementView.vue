@@ -95,7 +95,7 @@ export default {
       <div class="form-grid">
         <div class="form-group">
           <label>교과목명</label>
-          <input v-model="form.name" type="text" placeholder="예: 인공지능개론" required />
+          <input v-model="form.name" type="text" placeholder="예: 이야기로 미래읽기" required />
         </div>
         <div class="form-group">
           <label>구분</label>

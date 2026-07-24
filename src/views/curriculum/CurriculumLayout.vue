@@ -5,7 +5,6 @@ export default {
     return {
       sidebarItems: [
         { label: '교육과정 소개', to: '/curriculum' },
-        { label: 'HASS 혁신학과', to: '/curriculum/department' },
         { label: '개설과목', to: '/curriculum/subject' },
         { label: '마이크로디그리', to: '/curriculum/microdegree' },
         { label: '비교과프로그램', to: '/curriculum/program' }

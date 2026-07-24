@@ -4,7 +4,7 @@ const messages = {
   ko: {
     nav: {
       intro: { title: '사업소개', greeting: '사업단장 인사말', vision: '비전 및 목표', withus: 'FLASH 인재상', consortium: '컨소시엄 구성', organization: '사업단 조직도', contact: '찾아오시는 길' },
-      curriculum: { title: '교육과정', intro: '교육과정 소개', department: 'HASS 혁신학과', subject: '개설과목', microdegree: '마이크로디그리', program: '비교과프로그램' },
+      curriculum: { title: '교육과정', intro: '교육과정 소개', subject: '개설과목', microdegree: '마이크로디그리', program: '비교과프로그램' },
       support: { title: '학생지원', info: '지원제도', club: '동아리', job: '취업정보' },
       share: { title: '성과공유', result: '우수성과', newsletter: '뉴스레터', cardnews: '카드뉴스' },
       bulletin: { title: '정보광장', notice: '공지사항', partnerNotice: '참여대학 공지', data: '자료실', faq: 'FAQ', schedule: '사업단 일정' }
@@ -40,7 +40,7 @@ const messages = {
   en: {
     nav: {
       intro: { title: 'About', greeting: "Director's Message", vision: 'Vision & Goals', withus: 'FLASH Talent', consortium: 'Consortium', organization: 'Organization', contact: 'Location' },
-      curriculum: { title: 'Curriculum', intro: 'Overview', department: 'HASS Division', subject: 'Courses', microdegree: 'Microdegree', program: 'Extracurricular' },
+      curriculum: { title: 'Curriculum', intro: 'Overview', subject: 'Courses', microdegree: 'Microdegree', program: 'Extracurricular' },
       support: { title: 'Student Support', info: 'Support Programs', club: 'Clubs', job: 'Careers' },
       share: { title: 'Achievements', result: 'Highlights', newsletter: 'Newsletter', cardnews: 'Card News' },
       bulletin: { title: 'Information', notice: 'Notices', partnerNotice: 'Partner Notices', data: 'Resources', faq: 'FAQ', schedule: 'Schedule' }

@@ -3,9 +3,30 @@ export default {
   name: 'OrganizationView',
   data() {
     return {
-      departments: [
-        '언더우드국제대학 융합인문사회과학부', '창의기술경영(CTM)', '문화디자인경영(CDM)', '정보인터랙션디자인(IID)',
-        '지속개발협력(SDC)', '과학기술정책(STP)', '사회정의리더십(JCL)', '계량위험관리(QRM)', '아시아학(AS)'
+      departmentGroups: [
+        {
+          university: '연세대학교(주관)',
+          depts: [
+            '언더우드국제대학 융합인문사회과학부', '창의기술경영(CTM)', '문화디자인경영(CDM)', '정보인터랙션디자인(IID)',
+            '지속개발협력(SDC)', '과학기술정책(STP)', '사회정의리더십(JCL)', '계량위험관리(QRM)', '아시아학(AS)', '통합디자인학과'
+          ]
+        },
+        {
+          university: '국립공주대학교',
+          depts: ['영상학과', '애니메이션전공']
+        },
+        {
+          university: '동의대학교',
+          depts: ['국어국문학과', '문헌정보학과', '심리학과', '영화학과']
+        },
+        {
+          university: '이화여자대학교',
+          depts: ['스크랜튼학부', '국제학부', '뇌인지과학부', '기독교학과', '여성학과']
+        },
+        {
+          university: '한동대학교',
+          depts: ['제품디자인전공', '시각디자인전공', '건축전공', '전산전공', 'UX융합전공']
+        }
       ],
       committees: [
         {
@@ -49,8 +70,13 @@ export default {
     <h3>사업단 조직도</h3>
 
     <h4>참여학과</h4>
-    <div class="chip-row">
-      <span v-for="d in departments" :key="d" class="chip">{{ d }}</span>
+    <div class="dept-groups">
+      <div v-for="g in departmentGroups" :key="g.university" class="dept-group">
+        <p class="dept-group-title">{{ g.university }}</p>
+        <div class="chip-row">
+          <span v-for="d in g.depts" :key="d" class="chip">{{ d }}</span>
+        </div>
+      </div>
     </div>
 
     <h4>사업운영(전담)조직</h4>
@@ -82,6 +108,19 @@ h4 {
 
 h4:first-of-type {
   margin-top: 0;
+}
+
+.dept-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dept-group-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 8px;
 }
 
 .chip-row {

@@ -25,7 +25,6 @@ export default {
           to: '/curriculum',
           children: [
             { labelKey: 'nav.curriculum.intro', to: '/curriculum' },
-            { labelKey: 'nav.curriculum.department', to: '/curriculum/department' },
             { labelKey: 'nav.curriculum.subject', to: '/curriculum/subject' },
             { labelKey: 'nav.curriculum.microdegree', to: '/curriculum/microdegree' },
             { labelKey: 'nav.curriculum.program', to: '/curriculum/program' }

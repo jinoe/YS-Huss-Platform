@@ -5,11 +5,6 @@ export default {
     return {
       programs: [
         {
-          name: '미래디자인 DIVE 캠프',
-          tag: '컨소시엄 공동 프로그램',
-          desc: 'DIVE 4단계(상상–정의–설계–확산) 학습주기를 압축 체험하는 컨소시엄 공동 캠프'
-        },
-        {
           name: 'AI 해커톤',
           tag: '비교과-Advanced',
           desc: '공동 성과발표회(콜로키움)와 연계한 프로젝트 중심의 AI 해커톤'

@@ -4,8 +4,8 @@ export default {
   data() {
     return {
       requirements: [
-        { type: '나노디그리', condition: 'HUSS 마이크로디그리 교과목 중 6학점(2과목) 이수' },
-        { type: '마이크로디그리', condition: 'HUSS 교과목 중 9학점(3과목) 이수' }
+        { type: '나노디그리', condition: '공통 또는 특화교과 2과목(6학점) 이수' },
+        { type: '마이크로디그리', condition: '공통교과 9학점 + 특화교과 3학점(총 12학점) 이수' }
       ]
     }
   }
@@ -36,10 +36,6 @@ export default {
     </table>
 
     <div class="info-grid">
-      <div class="info-card">
-        <h5>프로그램 인증서 수여</h5>
-        <p>비교과 프로그램 참여 시 인증서 수여. 인증서 발급은 LMS 홈페이지에서 가능합니다.</p>
-      </div>
       <div class="info-card">
         <h5>표준현장실습학기제(인턴)</h5>
         <p>직무능력향상과 취업역량강화를 위한 표준현장실습학기제 운영. 실무 경험 제공 및 학점 인정.</p>

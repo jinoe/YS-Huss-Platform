@@ -1,7 +1,7 @@
 export default [
   {
     id: 1,
-    name: '인공지능과 인지과학',
+    name: '이야기로 미래읽기',
     professor: '황동욱',
     type: '전공',
     credit: 3,
@@ -11,7 +11,7 @@ export default [
   },
   {
     id: 2,
-    name: '동아시아 환경과 에너지 협력',
+    name: '동시대 문학과 영상 분석',
     professor: '전진호',
     type: '전공',
     credit: 3,
@@ -21,7 +21,7 @@ export default [
   },
   {
     id: 3,
-    name: '디지털시대의 국어',
+    name: '미래 윤리: 기술, 생명, AI의 규범',
     professor: '김소영',
     type: '전공',
     credit: 3,
@@ -31,10 +31,10 @@ export default [
   },
   {
     id: 4,
-    name: '그래픽내러티브',
+    name: '인공지능기반디자인',
     professor: '신승한',
-    type: '교양',
-    credit: 2,
+    type: '전공',
+    credit: 3,
     semester: '2026-1',
     submittedAt: '2026-02-18',
     status: '운영중'

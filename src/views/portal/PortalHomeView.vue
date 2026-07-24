@@ -24,9 +24,9 @@ export default {
         { label: '사업단 홈페이지', to: '/' }
       ],
       recommendations: [
-        { title: '머신러닝응용', type: '교과목', reason: 'AI융합 나노디그리를 이수 중인 회원님께 추천합니다.' },
-        { title: '지산학 리더십 아카데미', type: '비교과', reason: '최근 참여 이력을 기반으로 추천합니다.' },
-        { title: '국제무역실무', type: '교과목', reason: '글로벌통상 나노디그리 관심 학생에게 추천합니다.' }
+        { title: 'AI Motion and Visual Narratives', type: '교과목', reason: '인간중심 AI 미래경험 디자인 트랙을 이수 중인 회원님께 추천합니다.' },
+        { title: 'AI 해커톤', type: '비교과', reason: '최근 참여 이력을 기반으로 추천합니다.' },
+        { title: 'Future Life UX Design', type: '교과목', reason: 'AX 라이프 혁신 디자인 트랙에 관심 있는 학생에게 추천합니다.' }
       ]
     }
   },

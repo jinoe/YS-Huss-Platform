@@ -60,8 +60,8 @@ export default {
     },
     nanodegreeTrackBars() {
       return [
-        { label: 'AI융합 나노디그리 이수율', percent: 67 },
-        { label: '글로벌통상 나노디그리 이수율', percent: 33 }
+        { label: '인간중심 AI 미래경험 디자인 이수율', percent: 67 },
+        { label: 'AX 라이프 혁신 디자인 이수율', percent: 33 }
       ]
     },
     counselingTypeBars() {
