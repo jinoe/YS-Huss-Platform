@@ -5,34 +5,29 @@ export default {
     return {
       letters: [
         {
-          letter: 'W',
-          title: 'Welfare promotion through just economy and appropriate technology',
-          desc: '공정가치 역량과 통합 역량, 소통역량을 통해서 공정경제와 적정기술을 통한 복지 증진을 추구하는 인재'
+          letter: 'F',
+          title: 'Futures Imagination & Foresight',
+          desc: '미래를 서사적으로 상상하고 사회·문화적 변화를 선제적으로 예측하는 역량 (국립공주대학교 미래 서사·영상·미디어 트랙과 연계)'
         },
         {
-          letter: 'I',
-          title: 'Integration of tradition with future technology thinking',
-          desc: '통합역량과 지구 리터러시 역량을 기반으로 산업/도시 전통과 미래기술을 통합하여 사고하는 인재'
+          letter: 'L',
+          title: 'Literacy in Humanities-Grounded AI',
+          desc: '인문사회적 통찰을 바탕으로 AI·디지털 기술을 이해하고 활용하는 역량 (연세대학교 AI 프로토타이핑 랩과 연계)'
         },
         {
-          letter: 'T',
-          title: 'Transformation management for sustainable society',
-          desc: '분석 및 변화관리 역량을 토대로 변화관리를 주도하는 인재'
-        },
-        {
-          letter: 'H',
-          title: 'Human resources development for sustainability',
-          desc: '도시와 산업에 대한 리터러시 역량과 소통역량, 통합역량 등을 기반으로 도시 및 산업의 지속가능한 공생과 성장을 이끄는 인재'
-        },
-        {
-          letter: 'U',
-          title: 'Uplifting the cooperation in global resources',
-          desc: '거버넌스 역량, 지구 리터러시 역량을 토대로 글로벌 인적 자원 및 물적자원의 협력을 증진하는 인재'
+          letter: 'A',
+          title: 'Alternative Design Intelligence',
+          desc: '미래문해력을 바탕으로 인간 중심의 대안을 구체적으로 설계·구현하는 역량 (한동대학교 UX·서비스 디자인 트랙과 연계)'
         },
         {
           letter: 'S',
-          title: 'Symbiosis between countries and regions',
-          desc: '궁극적으로 국가와 지역 간의 공생과 성장에 기여하는 인재'
+          title: 'Societal Transformation Agency',
+          desc: '설계한 대안을 지역사회·산업 현장에서 실천하고 사회적으로 확산하는 역량 (동의대학교 지역 리빙랩·문화 혁신 트랙과 연계)'
+        },
+        {
+          letter: 'H',
+          title: 'Human-centered Sensemaking',
+          desc: '인간 중심의 관점에서 사회·문화적 의미를 해석하고 가치 전환을 읽어내는 역량 (이화여자대학교 가치·윤리·포용적 문화전략 트랙과 연계)'
         }
       ]
     }
@@ -42,10 +37,10 @@ export default {
 
 <template>
   <section class="page">
-    <h3>WITHUS 인재상</h3>
+    <h3>FLASH 인재상</h3>
     <div class="tag-row">
-      <span class="tag">글로벌 리소스 코디네이터</span>
-      <span class="tag">산업/도시의 지속가능성 전문가</span>
+      <span class="tag">전과정 문제설계형 융합인재</span>
+      <span class="tag">미래문해력 기반 실천적 종합 역량자</span>
     </div>
     <div class="letter-grid">
       <div v-for="item in letters" :key="item.letter" class="letter-card">

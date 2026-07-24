@@ -6,7 +6,7 @@ export default {
       sidebarItems: [
         { label: '사업단장 인사말', to: '/intro' },
         { label: '비전 및 목표', to: '/intro/vision' },
-        { label: 'WITHUS 인재상', to: '/intro/withus' },
+        { label: 'FLASH 인재상', to: '/intro/withus' },
         { label: '컨소시엄 구성', to: '/intro/consortium' },
         { label: '사업단 조직도', to: '/intro/organization' },
         { label: '찾아오시는 길', to: '/intro/contact' }

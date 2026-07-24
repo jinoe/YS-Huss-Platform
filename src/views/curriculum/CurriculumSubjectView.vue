@@ -1,28 +1,50 @@
 <script>
 const COURSES_BY_UNIVERSITY = {
-  kw: [
-    { group: '기존/개편', name: '디지털시대의 국어', type: '전공', credit: 3, method: '오프 - 블렌디드 70:30', professor: '김소영' },
-    { group: '기존/개편', name: '현대사회 문제론', type: '전공', credit: 3, method: '오프라인', professor: '정진경' },
-    { group: '기존/개편', name: '옛글과 콘텐츠 기획', type: '전공', credit: 3, method: '오프라인', professor: '강혜진' },
-    { group: '기존/개편', name: '글로벌이슈와 정책', type: '전공', credit: 3, method: '오프라인', professor: '전진호' },
-    { group: '기존/개편', name: '국제통상개론', type: '전공', credit: 3, method: '오프라인', professor: '팀티칭' },
-    { group: '기존/개편', name: 'Gen-AI기반텍스트마이닝과전략개발', type: '전공', credit: 3, method: '동영상 - 온라인', professor: '김상연' },
-    { group: '기존/개편', name: '빅데이터프로그래밍', type: '전공', credit: 3, method: '오프라인', professor: '임동혁' },
-    { group: '신규 개발(16)', name: '그래픽내러티브', type: '전공', credit: 3, method: '온 - 블렌디드 70:30', professor: '신승한' },
-    { group: '신규 개발(16)', name: '동아시아 환경과 에너지 협력', type: '전공', credit: 3, method: '오프 - 블렌디드 50:50', professor: '전진호' },
-    { group: '신규 개발(16)', name: '인공지능과 인지과학', type: '전공', credit: 3, method: '동영상 (VOD)', professor: '황동욱' }
+  yonsei: [
+    { group: 'Futures Narrative Studio', name: 'Culture and Storytelling', type: '공통교과', credit: 3, method: 'D', professor: '준비중' },
+    { group: 'Futures Narrative Studio', name: 'AI Motion and Visual Narratives', type: '공통교과', credit: 3, method: 'D-V', professor: '준비중' },
+    { group: 'Futures Narrative Studio', name: '사변적사고와 프로세스', type: '공통교과', credit: 3, method: 'D-I', professor: '준비중' },
+    { group: 'Future Problem Framing', name: 'Sustainable Development for Future', type: '공통교과', credit: 3, method: 'I', professor: '준비중' },
+    { group: 'Future Problem Framing', name: '데이터기반 통합디자인리서치', type: '공통교과', credit: 3, method: 'I', professor: '준비중' },
+    { group: 'Future Problem Framing', name: '스페큘레이티브 디자인', type: '공통교과', credit: 3, method: 'D-I', professor: '준비중' },
+    { group: 'Experience & Service Design', name: 'Future Experience Design', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'Experience & Service Design', name: 'User Experience Research Methods', type: '공통교과', credit: 3, method: 'I-V', professor: '준비중' },
+    { group: 'Experience & Service Design', name: 'Idea Visualization', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'AI Prototyping Lab', name: '인공지능기반디자인', type: '공통교과', credit: 3, method: 'V', professor: '준비중' }
   ],
-  kookmin: [
-    { group: '기존/개편', name: 'GIS 기반 사회현상 분석', type: '전공', credit: 3, method: '오프라인', professor: '준비중' }
+  gongju: [
+    { group: 'Futures Narrative Studio', name: '디자인픽션 프로젝트', type: '공통교과', credit: 3, method: 'D', professor: '준비중' },
+    { group: 'Futures Narrative Studio', name: '동시대 문학과 영상 분석', type: '공통교과', credit: 3, method: 'D-I', professor: '준비중' },
+    { group: 'Future Problem Framing', name: '데이터 기반 여론분석과 미래 예측', type: '공통교과', credit: 3, method: 'I', professor: '준비중' },
+    { group: 'Future Problem Framing', name: '알고리즘 권력', type: '공통교과', credit: 3, method: 'I', professor: '준비중' },
+    { group: 'Experience & Service Design', name: '사용자경험디자인', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'AI Prototyping Lab', name: '생성형AI를 활용한 디지털콘텐츠디자인', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'AI Prototyping Lab', name: '인터랙티브영상 콘텐츠', type: '공통교과', credit: 3, method: 'V', professor: '준비중' }
   ],
-  sunmoon: [
-    { group: '기존/개편', name: '국제협력과 지역사회', type: '전공', credit: 3, method: '오프라인', professor: '준비중' }
+  dongeui: [
+    { group: 'Futures Narrative Studio', name: '이야기로 미래읽기', type: '공통교과', credit: 3, method: 'D-I', professor: '준비중' },
+    { group: 'Future Problem Framing', name: 'AI시대의 인간과 사회', type: '공통교과', credit: 3, method: 'I', professor: '준비중' },
+    { group: 'Future Problem Framing', name: 'Futures Literacy Lab', type: '공통교과', credit: 3, method: 'D-I', professor: '준비중' },
+    { group: 'AI Prototyping Lab', name: 'AI미래시뮬레이션', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'AI Prototyping Lab', name: '지능형정보검색과 실습', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'Ethics by Design', name: '메타리터러시와 디지털시민성', type: '공통교과', credit: 3, method: 'I-E', professor: '준비중' }
   ],
-  yeungnam: [
-    { group: '기존/개편', name: '세계를 잇는 외국어', type: '전공', credit: 3, method: '오프라인', professor: '준비중' }
+  ewha: [
+    { group: 'Futures Narrative Studio', name: '미래를 상상하는 인간', type: '공통교과', credit: 3, method: 'D-I', professor: '준비중' },
+    { group: 'Future Problem Framing', name: '미래 윤리: 기술, 생명, AI의 규범', type: '공통교과', credit: 3, method: 'I', professor: '준비중' },
+    { group: 'Ethics by Design', name: '포용적 미래 설계 캡스톤', type: '공통교과', credit: 3, method: 'I-E', professor: '준비중' },
+    { group: 'Ethics by Design', name: '통합적 분쟁이해와 조정', type: '공통교과', credit: 3, method: 'I', professor: '준비중' },
+    { group: 'Ethics by Design', name: '여성과 사회정의', type: '공통교과', credit: 3, method: 'I', professor: '준비중' }
   ],
-  honam: [
-    { group: '기존/개편', name: '지속가능발전과 지역사회', type: '전공', credit: 3, method: '오프라인', professor: '준비중' }
+  handong: [
+    { group: 'Futures Narrative Studio', name: 'AX 내러티브 모션 그래픽스 1', type: '공통교과', credit: 3, method: 'D-V', professor: '준비중' },
+    { group: 'Future Problem Framing', name: 'Design Thinking', type: '공통교과', credit: 3, method: 'D-I', professor: '준비중' },
+    { group: 'Future Problem Framing', name: 'Design for Future Product 1', type: '공통교과', credit: 3, method: 'D-I', professor: '준비중' },
+    { group: 'Experience & Service Design', name: 'AX 라이프 디자인 스튜디오 1', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'Experience & Service Design', name: 'Future Life UX Design', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'AI Prototyping Lab', name: 'AX Native Design', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'AI Prototyping Lab', name: '스마트 인터페이스 디자인', type: '공통교과', credit: 3, method: 'V', professor: '준비중' },
+    { group: 'AI Prototyping Lab', name: '그래픽 디자인', type: '공통교과', credit: 3, method: 'V', professor: '준비중' }
   ]
 }
 
@@ -30,14 +52,14 @@ export default {
   name: 'CurriculumSubjectView',
   data() {
     return {
-      activeUniversity: 'kw',
+      activeUniversity: 'yonsei',
       keyword: '',
       universities: [
-        { key: 'kw', label: '광운대학교' },
-        { key: 'kookmin', label: '국민대학교' },
-        { key: 'sunmoon', label: '선문대학교' },
-        { key: 'yeungnam', label: '영남대학교' },
-        { key: 'honam', label: '호남대학교' }
+        { key: 'yonsei', label: '연세대학교' },
+        { key: 'gongju', label: '국립공주대학교' },
+        { key: 'dongeui', label: '동의대학교' },
+        { key: 'ewha', label: '이화여자대학교' },
+        { key: 'handong', label: '한동대학교' }
       ]
     }
   },
@@ -77,11 +99,11 @@ export default {
     <table class="subject-table">
       <thead>
         <tr>
-          <th>구분</th>
+          <th>공통교과 풀</th>
           <th>교과목명</th>
           <th>이수구분</th>
           <th>학점</th>
-          <th>교육방법 (변경될 수 있음)</th>
+          <th>DIVE 단계</th>
           <th>담당교수</th>
         </tr>
       </thead>

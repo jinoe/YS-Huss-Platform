@@ -3,8 +3,8 @@ import { createI18n } from 'vue-i18n'
 const messages = {
   ko: {
     nav: {
-      intro: { title: '사업소개', greeting: '사업단장 인사말', vision: '비전 및 목표', withus: 'WITHUS 인재상', consortium: '컨소시엄 구성', organization: '사업단 조직도', contact: '찾아오시는 길' },
-      curriculum: { title: '교육과정', intro: '교육과정 소개', department: '글로벌지속가능융합학과', subject: '개설과목', microdegree: '마이크로디그리', program: '비교과프로그램' },
+      intro: { title: '사업소개', greeting: '사업단장 인사말', vision: '비전 및 목표', withus: 'FLASH 인재상', consortium: '컨소시엄 구성', organization: '사업단 조직도', contact: '찾아오시는 길' },
+      curriculum: { title: '교육과정', intro: '교육과정 소개', department: 'HASS 혁신학과', subject: '개설과목', microdegree: '마이크로디그리', program: '비교과프로그램' },
       support: { title: '학생지원', info: '지원제도', club: '동아리', job: '취업정보' },
       share: { title: '성과공유', result: '우수성과', newsletter: '뉴스레터', cardnews: '카드뉴스' },
       bulletin: { title: '정보광장', notice: '공지사항', partnerNotice: '참여대학 공지', data: '자료실', faq: 'FAQ', schedule: '사업단 일정' }
@@ -15,9 +15,9 @@ const messages = {
       langToggle: 'ENG'
     },
     footer: {
-      address: '서울시 노원구 광운로 20 / TEL 02-940-8271 / FAX 02-940-8319',
+      address: '서울특별시 서대문구 연세로 50 연세대학교',
       policy: '개인정보처리방침',
-      copyright: 'COPYRIGHT ⓒ KWANGWOON UNIVERSITY. ALL RIGHTS RESERVED'
+      copyright: 'COPYRIGHT ⓒ YONSEI UNIVERSITY. ALL RIGHTS RESERVED'
     },
     home: {
       performanceTitle: '우수성과',
@@ -39,8 +39,8 @@ const messages = {
   },
   en: {
     nav: {
-      intro: { title: 'About', greeting: "Director's Message", vision: 'Vision & Goals', withus: 'WITHUS Talent', consortium: 'Consortium', organization: 'Organization', contact: 'Location' },
-      curriculum: { title: 'Curriculum', intro: 'Overview', department: 'Global Sustainability Dept.', subject: 'Courses', microdegree: 'Microdegree', program: 'Extracurricular' },
+      intro: { title: 'About', greeting: "Director's Message", vision: 'Vision & Goals', withus: 'FLASH Talent', consortium: 'Consortium', organization: 'Organization', contact: 'Location' },
+      curriculum: { title: 'Curriculum', intro: 'Overview', department: 'HASS Division', subject: 'Courses', microdegree: 'Microdegree', program: 'Extracurricular' },
       support: { title: 'Student Support', info: 'Support Programs', club: 'Clubs', job: 'Careers' },
       share: { title: 'Achievements', result: 'Highlights', newsletter: 'Newsletter', cardnews: 'Card News' },
       bulletin: { title: 'Information', notice: 'Notices', partnerNotice: 'Partner Notices', data: 'Resources', faq: 'FAQ', schedule: 'Schedule' }
@@ -51,9 +51,9 @@ const messages = {
       langToggle: 'KOR'
     },
     footer: {
-      address: '20 Gwangwoon-ro, Nowon-gu, Seoul / TEL +82-2-940-8271 / FAX +82-2-940-8319',
+      address: '50 Yonsei-ro, Seodaemun-gu, Seoul, Yonsei University',
       policy: 'Privacy Policy',
-      copyright: 'COPYRIGHT ⓒ KWANGWOON UNIVERSITY. ALL RIGHTS RESERVED'
+      copyright: 'COPYRIGHT ⓒ YONSEI UNIVERSITY. ALL RIGHTS RESERVED'
     },
     home: {
       performanceTitle: 'Highlights',

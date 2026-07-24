@@ -7,10 +7,10 @@ export default {
 <template>
   <section class="page">
     <h3>찾아오시는 길</h3>
-    <div class="map-placeholder">광운대학교 한울관</div>
+    <div class="map-placeholder">연세대학교</div>
     <div class="info-list">
-      <p><strong>주소</strong> 우) 01897 서울시 노원구 광운로 20 광운대학교 한울관 220호</p>
-      <p><strong>대표 전화</strong> 02-940-8271</p>
+      <p><strong>주소</strong> 서울특별시 서대문구 연세로 50 연세대학교</p>
+      <p><strong>주관학부</strong> 언더우드국제대학</p>
     </div>
   </section>
 </template>

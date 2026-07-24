@@ -19,24 +19,24 @@ export default {
           image: heroSample
         },
         {
-          title: '글로벌 공생과 성장을 주도하는\n인문사회융합 전문인재양성 컨소시엄',
-          titleEn: 'A Consortium Leading Global Coexistence\nand Humanities-Social Convergence Talent',
-          desc: '도전·소통·협력을 통해 문제해결 능력을 갖춘 융합형 혁신인재양성',
-          descEn: 'Cultivating innovative talent through challenge, communication, and collaboration',
+          title: '인간 중심 미래사회 전환을 주도하는\n인문사회융합 전문인재양성 컨소시엄',
+          titleEn: 'A Consortium Leading Human-centered\nFutures Transformation & Convergence Talent',
+          desc: '미래문해력 기반 공동 교육과정으로 전과정 문제설계형 융합인재를 양성합니다',
+          descEn: 'Cultivating problem-designing talent through a shared futures literacy curriculum',
           image: heroSample2
         },
         {
           title: '5개 대학이 함께하는\n컨소시엄 구성',
           titleEn: 'A Consortium of\nFive Universities',
-          desc: '광운대·국민대·선문대·영남대·호남대',
-          descEn: 'Kwangwoon · Kookmin · Sun Moon · Yeungnam · Honam',
+          desc: '연세대·국립공주대·동의대·이화여대·한동대',
+          descEn: 'Yonsei · Kongju National · Dongeui · Ewha Womans · Handong',
           image: heroSample3
         },
         {
-          title: '"WITH US" 융합인재',
-          titleEn: '"WITH US" Convergence Talent',
-          desc: '글로벌 리소스 코디네이터, 산업/도시의 지속가능성 전문가 교육과정',
-          descEn: 'A curriculum for global resource coordinators and sustainability experts',
+          title: '"FLASH" 융합인재',
+          titleEn: '"FLASH" Convergence Talent',
+          desc: '미래문해력 기반 전과정 문제설계형 융합인재 교육과정',
+          descEn: 'A curriculum for futures-literate, problem-designing convergence talent',
           image: heroSample4
         }
       ]
