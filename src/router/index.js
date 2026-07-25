@@ -190,6 +190,21 @@ const router = createRouter({
           component: () => import('../views/portal/PortalHomeView.vue')
         },
         {
+          path: 'courses',
+          name: 'portal-courses',
+          component: () => import('../views/portal/CourseCatalogView.vue')
+        },
+        {
+          path: 'courses/:id',
+          name: 'portal-course-detail',
+          component: () => import('../views/portal/CourseDetailView.vue')
+        },
+        {
+          path: 'kpi',
+          name: 'portal-kpi',
+          component: () => import('../views/portal/KpiDashboardView.vue')
+        },
+        {
           path: 'microdegree',
           name: 'portal-microdegree',
           component: () => import('../views/portal/MicrodegreeSimulatorView.vue')

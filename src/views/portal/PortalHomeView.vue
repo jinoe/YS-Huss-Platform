@@ -1,12 +1,15 @@
 <script>
 import counselingSessions from '../../data/counselingSessions.js'
 import notices from '../../data/notices.js'
-import { CURRENT_STUDENT } from '../../data/currentUser.js'
+import courses from '../../data/courses.js'
+import session from '../../data/session.js'
+import { enrollmentsForStudentName } from '../../data/queries.js'
 
 export default {
   name: 'PortalHomeView',
   data() {
     return {
+      session,
       stats: [
         { label: '이수 학점', value: 12 },
         { label: '진행중 과정', value: 2 },
@@ -33,7 +36,7 @@ export default {
   computed: {
     notifications() {
       const upcomingCounseling = counselingSessions.filter(
-        (s) => s.studentName === CURRENT_STUDENT && s.status === '예정'
+        (s) => s.studentName === this.session.studentName && s.status === '예정'
       ).length
       const recentNotices = notices.filter((n) => n.date >= '2026-07-01').length
       return [
@@ -41,6 +44,22 @@ export default {
         { label: '상담 예약 알림', count: upcomingCounseling },
         { label: '신규 공지', count: recentNotices }
       ]
+    },
+    isProfessor() {
+      return this.session.role === 'professor'
+    },
+    userDisplayName() {
+      return this.isProfessor ? `${this.session.professorName} 교수` : this.session.studentName
+    },
+    myCoursesTitle() {
+      return this.isProfessor ? '담당 과목' : '수강 중인 과목'
+    },
+    myCourses() {
+      if (this.isProfessor) {
+        return courses.filter((c) => c.professor === this.session.professorName)
+      }
+      const myCourseIds = enrollmentsForStudentName(this.session.studentName, { status: '수강' }).map((e) => e.courseId)
+      return courses.filter((c) => myCourseIds.includes(c.id))
     }
   }
 }
@@ -52,7 +71,7 @@ export default {
       <div class="profile-card">
         <span class="badge">HUSS</span>
         <p class="program-name">인문사회융합인재양성사업단</p>
-        <h2 class="user-name">이진호 님</h2>
+        <h2 class="user-name">{{ userDisplayName }} 님</h2>
         <div class="stat-row">
           <div v-for="stat in stats" :key="stat.label" class="stat">
             <span class="stat-value">{{ stat.value }}</span>
@@ -69,6 +88,19 @@ export default {
     </aside>
 
     <section class="main-panel">
+      <h3>{{ myCoursesTitle }}</h3>
+      <div class="course-grid">
+        <div v-for="course in myCourses" :key="course.id" class="course-card">
+          <span class="notice-tag">{{ course.group }}</span>
+          <p class="course-title">{{ course.name }}</p>
+          <p class="course-meta">{{ course.professor }} · {{ course.credit }}학점 · {{ course.semester }}</p>
+          <router-link :to="`/portal/courses/${course.id}`" class="course-enter">강의실 입장 →</router-link>
+        </div>
+        <p v-if="!myCourses.length" class="course-empty">
+          {{ isProfessor ? '담당 중인 과목이 없습니다.' : '수강 중인 과목이 없습니다. 수강편람에서 과목을 신청해 보세요.' }}
+        </p>
+      </div>
+
       <h3>공지사항</h3>
       <ul class="notice-list">
         <li v-for="notice in notices" :key="notice.title">
@@ -78,14 +110,16 @@ export default {
         </li>
       </ul>
 
-      <h3>추천 교과목·프로그램</h3>
-      <div class="recommend-grid">
-        <div v-for="item in recommendations" :key="item.title" class="recommend-card">
-          <span class="notice-tag">{{ item.type }}</span>
-          <p class="recommend-title">{{ item.title }}</p>
-          <p class="recommend-reason">{{ item.reason }}</p>
+      <template v-if="!isProfessor">
+        <h3>추천 교과목·프로그램</h3>
+        <div class="recommend-grid">
+          <div v-for="item in recommendations" :key="item.title" class="recommend-card">
+            <span class="notice-tag">{{ item.type }}</span>
+            <p class="recommend-title">{{ item.title }}</p>
+            <p class="recommend-reason">{{ item.reason }}</p>
+          </div>
         </div>
-      </div>
+      </template>
 
       <h3>바로가기</h3>
       <div class="quick-buttons">
@@ -227,7 +261,7 @@ h3 {
 
 .notice-list {
   list-style: none;
-  margin: 0;
+  margin: 0 0 32px;
   padding: 0;
 }
 
@@ -260,6 +294,56 @@ h3 {
   flex-shrink: 0;
   color: var(--color-muted);
   font-size: 12px;
+}
+
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.course-card {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.course-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 5px;
+  background: var(--color-primary);
+}
+
+.course-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 10px 0 6px;
+}
+
+.course-meta {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 0 0 12px;
+}
+
+.course-enter {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.course-empty {
+  grid-column: 1 / -1;
+  color: var(--color-muted);
+  font-size: 13px;
+  margin: 0;
 }
 
 .recommend-grid {
@@ -323,7 +407,8 @@ h3 {
   .dashboard {
     grid-template-columns: 1fr;
   }
-  .recommend-grid {
+  .recommend-grid,
+  .course-grid {
     grid-template-columns: 1fr;
   }
 }

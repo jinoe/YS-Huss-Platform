@@ -29,12 +29,14 @@ const messages = {
       faq: 'FAQ'
     },
     portal: {
-      sidebar: { mypage: '마이페이지', microdegree: '나노디그리 시뮬레이터', counseling: '학사지도·상담', subjects: '교과목 관리', admin: '관리자' },
+      sidebar: { mypage: '마이페이지', courses: '수강편람', microdegree: '나노디그리 시뮬레이터', counseling: '학사지도·상담', subjects: '교과목 관리', kpi: 'KPI 대시보드', admin: '관리자' },
       exit: '홈페이지 바로가기',
       logout: '로그아웃',
       notice: '공지사항',
       quicklinks: '바로가기',
-      recommend: '추천 교과목·프로그램'
+      recommend: '추천 교과목·프로그램',
+      role: { student: '학생', professor: '교수' },
+      test: { title: '테스트용', random: '랜덤 변경' }
     }
   },
   en: {
@@ -65,12 +67,14 @@ const messages = {
       faq: 'FAQ'
     },
     portal: {
-      sidebar: { mypage: 'My Page', microdegree: 'Microdegree Simulator', counseling: 'Advising & Counseling', subjects: 'Course Management', admin: 'Admin' },
+      sidebar: { mypage: 'My Page', courses: 'Course Catalog', microdegree: 'Microdegree Simulator', counseling: 'Advising & Counseling', subjects: 'Course Management', kpi: 'KPI Dashboard', admin: 'Admin' },
       exit: 'Visit Main Site',
       logout: 'Log Out',
       notice: 'Notices',
       quicklinks: 'Quick Links',
-      recommend: 'Recommended for You'
+      recommend: 'Recommended for You',
+      role: { student: 'Student', professor: 'Professor' },
+      test: { title: 'Test Only', random: 'Randomize' }
     }
   }
 }

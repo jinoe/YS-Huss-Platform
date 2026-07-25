@@ -1,32 +1,54 @@
 <script>
 import ServiceIcon from '../../components/portal/ServiceIcon.vue'
+import session from '../../data/session.js'
+import { STUDENT_POOL, PROFESSOR_POOL } from '../../data/currentUser.js'
 
 export default {
   name: 'PortalLayout',
   components: { ServiceIcon },
   data() {
     return {
+      session,
       navItems: [
         { labelKey: 'portal.sidebar.mypage', to: '/portal', icon: 'mypage' },
+        { labelKey: 'portal.sidebar.courses', to: '/portal/courses', icon: 'courses' },
         { labelKey: 'portal.sidebar.microdegree', to: '/portal/microdegree', icon: 'microdegree' },
         { labelKey: 'portal.sidebar.counseling', to: '/portal/counseling', icon: 'counseling' },
         { labelKey: 'portal.sidebar.subjects', to: '/portal/subjects', icon: 'subjects' },
+        { labelKey: 'portal.sidebar.kpi', to: '/portal/kpi', icon: 'kpi' },
         { labelKey: 'portal.sidebar.admin', to: '/portal/admin', icon: 'admin' }
       ]
     }
   },
   computed: {
     currentLabel() {
-      const matched = this.navItems.find((item) => item.to === this.$route.path)
+      const matched = this.navItems.find((item) => this.isActive(item.to))
       return matched ? this.$t(matched.labelKey) : ''
+    },
+    userDisplayName() {
+      return this.session.role === 'professor' ? `${this.session.professorName} 교수` : this.session.studentName
     }
   },
   methods: {
     isActive(to) {
-      return this.$route.path === to
+      if (to === '/portal') return this.$route.path === '/portal'
+      return this.$route.path.startsWith(to)
     },
     toggleLang() {
       this.$i18n.locale = this.$i18n.locale === 'ko' ? 'en' : 'ko'
+    },
+    setRole(role) {
+      this.session.role = role
+    },
+    randomizeIdentity() {
+      if (this.session.role === 'student') {
+        const pool = STUDENT_POOL.filter((name) => name !== this.session.studentName)
+        this.session.studentName = pool[Math.floor(Math.random() * pool.length)]
+      } else {
+        const pool = PROFESSOR_POOL.filter((name) => name !== this.session.professorName)
+        this.session.professorName = pool[Math.floor(Math.random() * pool.length)]
+      }
+      if (this.$route.path !== '/portal') this.$router.push('/portal')
     }
   }
 }
@@ -56,8 +78,16 @@ export default {
       <header class="portal-topbar">
         <h1>{{ currentLabel }}</h1>
         <div class="portal-user">
+          <div class="test-panel">
+            <span class="test-panel-title">{{ $t('portal.test.title') }}</span>
+            <div class="role-toggle">
+              <button type="button" :class="{ active: session.role === 'student' }" @click="setRole('student')">{{ $t('portal.role.student') }}</button>
+              <button type="button" :class="{ active: session.role === 'professor' }" @click="setRole('professor')">{{ $t('portal.role.professor') }}</button>
+            </div>
+            <button type="button" class="btn-random" @click="randomizeIdentity">{{ $t('portal.test.random') }}</button>
+          </div>
           <button type="button" class="lang-toggle" @click="toggleLang">{{ $t('header.langToggle') }}</button>
-          <span>이진호님</span>
+          <span>{{ userDisplayName }}님</span>
           <button type="button">{{ $t('portal.logout') }}</button>
         </div>
       </header>
@@ -181,6 +211,61 @@ export default {
 
 .portal-user .lang-toggle {
   font-weight: 700;
+}
+
+.test-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed var(--color-border);
+  border-radius: 999px;
+  padding: 4px 8px 4px 12px;
+}
+
+.test-panel-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.role-toggle {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.role-toggle button {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  background: #fff;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.role-toggle button.active {
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+}
+
+.btn-random {
+  border: 1px solid var(--color-border);
+  background: var(--bg-soft);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.btn-random:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .portal-content {
