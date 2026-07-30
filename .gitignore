@@ -28,3 +28,8 @@ dist-ssr
 *.sln
 *.sw?
 .gstack/
+
+# 민감 참고 문서(사업계획서 원문/스캔본, 실사이트 스크린샷, 개인정보 포함 예시 문서 등) — 프로젝트 문서(설계/기획 메모)만 예외로 추적
+docs/*
+!docs/lms-feature-plan.md
+!docs/project-brief.md
