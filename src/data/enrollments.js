@@ -6,6 +6,26 @@ import courses from './courses.js'
 // KPI 대시보드 등에서 연도·학기를 선택할 수 있는 전체 학기 목록. 2026-2가 현재 진행 중(수강신청 오픈)인 학기.
 export const SEMESTERS = ['2025-1', '2025-2', '2026-1', '2026-2']
 
+// 학기별 수강신청 기간 첫째 날(5일간 진행). 관리자 대시보드의 "수강신청 내역" 날짜별 조회/CSV 다운로드가
+// 이 5일 창을 기준으로 동작한다 — 컨소시엄 참여 대학마다 수강신청 API를 직접 연동하기 어려워, 매일 그날 신청
+// 내역을 관리자가 CSV로 내려받아 타 대학에 수동으로 전달하는 운영 방식을 반영한 것.
+export const REGISTRATION_PERIOD_START = {
+  '2025-1': '2025-02-24',
+  '2025-2': '2025-08-25',
+  '2026-1': '2026-02-23',
+  '2026-2': '2026-08-25'
+}
+export const REGISTRATION_PERIOD_DAYS = 5
+
+function registrationDateFor(semester, seed) {
+  const start = REGISTRATION_PERIOD_START[semester]
+  if (!start) return ''
+  const offset = Math.floor(pseudoRandom(seed) * REGISTRATION_PERIOD_DAYS)
+  const d = new Date(`${start}T00:00:00`)
+  d.setDate(d.getDate() + offset)
+  return d.toISOString().slice(0, 10)
+}
+
 // 특정 과목의 로스터/CSV 데모 스토리(컨소시엄 5개교 공동수강, 담당교수 로스터 등)를 위해 손으로 심어둔 행
 const CURATED = [
   // Sustainable Development for Future (courseId 4, 연세대, 김소영 교수) — 컨소시엄 5개교 학생이 함께 수강하는 공유 교과목 데모
@@ -70,5 +90,10 @@ for (const semester of SEMESTERS) {
     }
   }
 }
+
+// CURATED 손시딩 항목엔 registeredAt이 없으므로, 모든 행에 학기별 5일 수강신청 기간 내 날짜를 결정적으로 부여
+enrollments.forEach((e) => {
+  if (!e.registeredAt) e.registeredAt = registrationDateFor(e.semester, e.studentId * 13 + e.courseId * 7)
+})
 
 export default enrollments

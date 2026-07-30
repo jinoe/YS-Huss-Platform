@@ -29,7 +29,7 @@ const messages = {
       faq: 'FAQ'
     },
     portal: {
-      sidebar: { mypage: '마이페이지', courses: '수강편람', microdegree: '나노디그리 시뮬레이터', counseling: '학사지도·상담', subjects: '교과목 관리', kpi: 'KPI 대시보드', admin: '관리자' },
+      sidebar: { mypage: '마이페이지', courses: '수강편람', registration: '수강신청', microdegree: '나노디그리 시뮬레이터', counseling: '학사지도·상담', subjects: '교과목 관리', kpi: 'KPI 대시보드', admin: '관리자' },
       exit: '홈페이지 바로가기',
       logout: '로그아웃',
       notice: '공지사항',
@@ -67,7 +67,7 @@ const messages = {
       faq: 'FAQ'
     },
     portal: {
-      sidebar: { mypage: 'My Page', courses: 'Course Catalog', microdegree: 'Microdegree Simulator', counseling: 'Advising & Counseling', subjects: 'Course Management', kpi: 'KPI Dashboard', admin: 'Admin' },
+      sidebar: { mypage: 'My Page', courses: 'Course Catalog', registration: 'Course Registration', microdegree: 'Microdegree Simulator', counseling: 'Advising & Counseling', subjects: 'Course Management', kpi: 'KPI Dashboard', admin: 'Admin' },
       exit: 'Visit Main Site',
       logout: 'Log Out',
       notice: 'Notices',

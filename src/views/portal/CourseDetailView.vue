@@ -4,6 +4,7 @@ import enrollments from '../../data/enrollments.js'
 import session from '../../data/session.js'
 import { joinedEnrollments, isStudentEnrolledByName } from '../../data/queries.js'
 import { studentProfile } from '../../data/currentUser.js'
+import SyllabusDocument from '../../components/portal/SyllabusDocument.vue'
 
 const UNIVERSITY_LABELS = {
   yonsei: '연세대학교',
@@ -15,6 +16,7 @@ const UNIVERSITY_LABELS = {
 
 export default {
   name: 'CourseDetailView',
+  components: { SyllabusDocument },
   data() {
     return {
       session,
@@ -38,7 +40,8 @@ export default {
     tabs() {
       const base = [
         { key: 'weeks', label: '주차별 학습활동' },
-        { key: 'notices', label: '과목공지' }
+        { key: 'notices', label: '과목공지' },
+        { key: 'syllabus', label: '강의계획서' }
       ]
       if (this.isProfessor) base.push({ key: 'roster', label: '수강생 명단' })
       return base
@@ -46,12 +49,6 @@ export default {
     roster() {
       if (!this.course) return []
       return joinedEnrollments(this.enrollments.filter((e) => e.courseId === this.course.id))
-    },
-    currentRoster() {
-      return this.roster.filter((e) => e.semester === this.course.semester)
-    },
-    seatsTaken() {
-      return this.currentRoster.filter((e) => e.status === '수강').length
     },
     isEnrolled() {
       if (!this.course) return false
@@ -61,6 +58,13 @@ export default {
   methods: {
     uniLabel(key) {
       return UNIVERSITY_LABELS[key] || key
+    },
+    goBack() {
+      if (window.history.state && window.history.state.back) {
+        this.$router.back()
+      } else {
+        this.$router.push('/portal/courses')
+      }
     },
     selectTab(key) {
       this.activeTab = key
@@ -89,16 +93,10 @@ export default {
         id: Date.now(),
         courseId: this.course.id,
         semester: this.course.semester,
+        registeredAt: new Date().toISOString().slice(0, 10),
         ...studentProfile(this.session.studentName),
         status: '수강'
       })
-    },
-    uploadSyllabus(event) {
-      const file = event.target.files[0]
-      if (!file) return
-      this.course.syllabus.uploaded = true
-      this.course.syllabus.fileName = file.name
-      event.target.value = ''
     },
     downloadRosterCsv() {
       const header = ['학기', '이름', '학번', '소속 대학', '학과', '이메일', '연락처', '상태']
@@ -127,38 +125,13 @@ export default {
 
 <template>
   <section v-if="course" class="page">
-    <router-link to="/portal/courses" class="back-link">← 수강편람 목록</router-link>
+    <button type="button" class="back-link" @click="goBack">← 뒤로가기</button>
 
     <div class="course-header">
       <span class="university-badge">{{ universityLabel }}</span>
       <span class="stage-badge">DIVE {{ course.method }}</span>
       <h2>{{ course.name }}</h2>
       <p class="group">{{ course.group }}</p>
-    </div>
-
-    <div class="info-grid">
-      <div class="info-item"><span class="label">이수구분</span><span class="value">{{ course.type }}</span></div>
-      <div class="info-item"><span class="label">학점</span><span class="value">{{ course.credit }}</span></div>
-      <div class="info-item"><span class="label">학기</span><span class="value">{{ course.semester }}</span></div>
-      <div class="info-item"><span class="label">담당교수</span><span class="value">{{ course.professor }}</span></div>
-      <div class="info-item"><span class="label">수강 인원</span><span class="value">{{ seatsTaken }} / {{ course.capacity }}</span></div>
-      <div class="info-item"><span class="label">수강신청</span><span class="value">{{ course.registrationOpen ? '신청 가능' : '마감' }}</span></div>
-    </div>
-
-    <div class="section">
-      <h3>강의계획서</h3>
-      <div v-if="isProfessor" class="syllabus-upload">
-        <span v-if="course.syllabus.uploaded" class="file-name">{{ course.syllabus.fileName }}</span>
-        <span v-else class="file-name empty">아직 업로드된 강의계획서가 없습니다.</span>
-        <label class="btn-secondary upload-btn">
-          {{ course.syllabus.uploaded ? '다시 업로드' : '업로드' }}
-          <input type="file" class="file-input" @change="uploadSyllabus" />
-        </label>
-      </div>
-      <div v-else class="syllabus-view">
-        <span v-if="course.syllabus.uploaded" class="file-name">📄 {{ course.syllabus.fileName }}</span>
-        <span v-else class="file-name empty">아직 업로드된 강의계획서가 없습니다.</span>
-      </div>
     </div>
 
     <div class="tabs">
@@ -220,6 +193,10 @@ export default {
       </div>
     </div>
 
+    <div v-else-if="activeTab === 'syllabus'" class="section">
+      <SyllabusDocument :course="course" />
+    </div>
+
     <div v-else-if="activeTab === 'roster'" class="section">
       <div class="roster-header">
         <button type="button" class="btn-secondary" @click="downloadRosterCsv" :disabled="!roster.length">CSV 다운로드</button>
@@ -270,9 +247,14 @@ export default {
 
 .back-link {
   display: inline-block;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
   font-size: 13px;
   color: var(--color-muted);
   margin-bottom: 20px;
+  cursor: pointer;
 }
 
 .back-link:hover {
@@ -285,7 +267,7 @@ export default {
   color: #fff;
   border-radius: 12px;
   padding: 24px;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
   overflow: hidden;
 }
 
@@ -321,32 +303,6 @@ export default {
   font-size: 13px;
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
-.info-item {
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.info-item .label {
-  font-size: 12px;
-  color: var(--color-muted);
-}
-
-.info-item .value {
-  font-size: 15px;
-  font-weight: 700;
-}
-
 .section {
   margin-bottom: 32px;
 }
@@ -356,22 +312,6 @@ export default {
   color: var(--color-muted);
   margin: 0 0 12px;
   font-weight: 700;
-}
-
-.syllabus-upload,
-.syllabus-view {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.file-name {
-  font-size: 14px;
-}
-
-.file-name.empty {
-  color: var(--color-muted);
 }
 
 .upload-btn {
@@ -622,8 +562,14 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .course-header {
+    flex-basis: 100%;
+  }
   .info-grid {
-    grid-template-columns: 1fr 1fr;
+    flex-basis: 100%;
+  }
+  .info-item {
+    flex-basis: calc(50% - 6px);
   }
   .roster-table {
     display: block;

@@ -12,6 +12,7 @@ export default {
       navItems: [
         { labelKey: 'portal.sidebar.mypage', to: '/portal', icon: 'mypage' },
         { labelKey: 'portal.sidebar.courses', to: '/portal/courses', icon: 'courses' },
+        { labelKey: 'portal.sidebar.registration', to: '/portal/registration', icon: 'registration' },
         { labelKey: 'portal.sidebar.microdegree', to: '/portal/microdegree', icon: 'microdegree' },
         { labelKey: 'portal.sidebar.counseling', to: '/portal/counseling', icon: 'counseling' },
         { labelKey: 'portal.sidebar.subjects', to: '/portal/subjects', icon: 'subjects' },
@@ -49,6 +50,10 @@ export default {
         this.session.professorName = pool[Math.floor(Math.random() * pool.length)]
       }
       if (this.$route.path !== '/portal') this.$router.push('/portal')
+    },
+    logout() {
+      this.session.isAuthenticated = false
+      this.$router.push('/portal/login')
     }
   }
 }
@@ -88,7 +93,7 @@ export default {
           </div>
           <button type="button" class="lang-toggle" @click="toggleLang">{{ $t('header.langToggle') }}</button>
           <span>{{ userDisplayName }}님</span>
-          <button type="button">{{ $t('portal.logout') }}</button>
+          <button type="button" @click="logout">{{ $t('portal.logout') }}</button>
         </div>
       </header>
       <main class="portal-content">

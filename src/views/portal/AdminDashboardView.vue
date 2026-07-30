@@ -1,6 +1,8 @@
 <script>
 import subjectApprovals from '../../data/subjectApprovals.js'
 import counselingSessions from '../../data/counselingSessions.js'
+import enrollments, { REGISTRATION_PERIOD_START, REGISTRATION_PERIOD_DAYS } from '../../data/enrollments.js'
+import { joinedEnrollments } from '../../data/queries.js'
 
 const COUNSELING_TYPES = ['학업', '진로', '나노디그리', '비교과', '외국인 학생 지원']
 const COUNSELING_STATUS_CLASS = { 예정: 'scheduled', 완료: 'completed', 취소: 'cancelled' }
@@ -20,11 +22,14 @@ export default {
     return {
       approvals: subjectApprovals,
       sessions: counselingSessions,
+      enrollments,
       activeTab: 'subjects',
       tabs: [
         { key: 'subjects', label: '교과목 승인' },
-        { key: 'counseling', label: '상담 관리' }
+        { key: 'counseling', label: '상담 관리' },
+        { key: 'enrollments', label: '수강신청 내역' }
       ],
+      selectedDate: REGISTRATION_PERIOD_START['2026-2'],
       nanodegreeRate: 42,
       pageViews: PAGE_VIEWS
     }
@@ -38,6 +43,25 @@ export default {
     },
     pendingCount() {
       return this.pendingApprovals.length
+    },
+    registrationPeriodMin() {
+      return REGISTRATION_PERIOD_START['2026-2']
+    },
+    registrationPeriodMax() {
+      const d = new Date(`${REGISTRATION_PERIOD_START['2026-2']}T00:00:00`)
+      d.setDate(d.getDate() + REGISTRATION_PERIOD_DAYS - 1)
+      return d.toISOString().slice(0, 10)
+    },
+    dayEnrollments() {
+      const list = this.enrollments.filter((e) => e.registeredAt === this.selectedDate)
+      return joinedEnrollments(list)
+    },
+    universityBreakdown() {
+      const counts = {}
+      for (const e of this.dayEnrollments) {
+        counts[e.universityLabel] = (counts[e.universityLabel] || 0) + 1
+      }
+      return Object.entries(counts).map(([label, count]) => ({ label, count }))
     },
     counselingCompletionRate() {
       const cancelled = this.sessions.filter((s) => s.status === '취소').length
@@ -94,6 +118,28 @@ export default {
     },
     cancelSession(session) {
       session.status = '취소'
+    },
+    downloadDayEnrollmentsCsv() {
+      const header = ['학기', '수강신청일', '소속 대학', '학생명', '학번', '학과', '교과목명', '담당교수', '상태']
+      const rows = this.dayEnrollments.map((e) => [
+        e.semester,
+        e.registeredAt,
+        e.universityLabel,
+        e.studentName,
+        e.studentNumber,
+        e.department,
+        e.courseName,
+        e.courseProfessor,
+        e.status
+      ])
+      const csv = [header, ...rows].map((row) => row.join(',')).join('\n')
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `수강신청내역_${this.selectedDate}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
     },
     generateReport() {
       const today = new Date().toISOString().slice(0, 10)
@@ -196,7 +242,7 @@ export default {
       </table>
     </template>
 
-    <template v-else>
+    <template v-else-if="activeTab === 'counseling'">
       <h4>상담 관리 (전체 학생)</h4>
       <table class="admin-table">
         <thead>
@@ -225,6 +271,51 @@ export default {
               </template>
               <span v-else>-</span>
             </td>
+          </tr>
+        </tbody>
+      </table>
+    </template>
+
+    <template v-else-if="activeTab === 'enrollments'">
+      <h4>수강신청 내역 (날짜별 조회)</h4>
+      <p class="enrollment-desc">타 대학에 전달할 일자별 수강신청 내역을 조회하고 CSV로 내려받습니다. 수강신청 기간: {{ registrationPeriodMin }} ~ {{ registrationPeriodMax }}</p>
+      <div class="enrollment-toolbar">
+        <label class="date-picker">
+          <span>조회 날짜</span>
+          <input type="date" v-model="selectedDate" :min="registrationPeriodMin" :max="registrationPeriodMax" />
+        </label>
+        <div class="university-breakdown">
+          <span v-for="b in universityBreakdown" :key="b.label" class="breakdown-pill">{{ b.label }} {{ b.count }}건</span>
+        </div>
+        <span class="enrollment-count">총 {{ dayEnrollments.length }}건</span>
+        <button type="button" class="btn-secondary" @click="downloadDayEnrollmentsCsv" :disabled="!dayEnrollments.length">CSV 다운로드</button>
+      </div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>학기</th>
+            <th>소속 대학</th>
+            <th>학생명</th>
+            <th>학번</th>
+            <th>학과</th>
+            <th>교과목명</th>
+            <th>담당교수</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="e in dayEnrollments" :key="e.id">
+            <td>{{ e.semester }}</td>
+            <td>{{ e.universityLabel }}</td>
+            <td class="name">{{ e.studentName }}</td>
+            <td>{{ e.studentNumber }}</td>
+            <td>{{ e.department }}</td>
+            <td>{{ e.courseName }}</td>
+            <td>{{ e.courseProfessor }}</td>
+            <td>{{ e.status }}</td>
+          </tr>
+          <tr v-if="!dayEnrollments.length">
+            <td colspan="8" class="empty">선택한 날짜에 수강신청 내역이 없습니다.</td>
           </tr>
         </tbody>
       </table>
@@ -465,6 +556,83 @@ h4 {
   display: flex;
   justify-content: flex-end;
   margin-top: 28px;
+}
+
+.enrollment-desc {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin: -4px 0 16px;
+}
+
+.enrollment-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.date-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-muted);
+  font-weight: 700;
+}
+
+.date-picker input {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text);
+}
+
+.date-picker input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.university-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.breakdown-pill {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.enrollment-count {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin-left: auto;
+}
+
+.btn-secondary {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.btn-secondary:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-primary {

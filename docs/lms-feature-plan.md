@@ -62,10 +62,40 @@
 
 ## Phase 순서 (체크리스트)
 
-- [ ] **Phase 1** — 데이터 모델 신설(`courses.js`/`enrollments.js`/`kpiIndicators.js`) + `currentUser.js` 역할 확장 + `CurriculumSubjectView` `courses.js` 참조로 리팩터 + 역할 토글 UI(`PortalLayout`)
-- [ ] **Phase 2** — 수강편람(`/portal/courses`) + 강의실 상세(`/portal/courses/:id`, role별 분기 + 로스터 + CSV)
-- [ ] **Phase 3** — `PortalHomeView` role별 "수강/담당 과목" 섹션
-- [ ] **Phase 4** — KPI 대시보드(`/portal/kpi`) + 필터 + CSV 2종
+- [x] **Phase 1** — 데이터 모델 신설(`courses.js`/`enrollments.js`/`kpiIndicators.js`) + `currentUser.js` 역할 확장 + `CurriculumSubjectView` `courses.js` 참조로 리팩터 + 역할 토글 UI(`PortalLayout`)
+- [x] **Phase 2** — 수강편람(`/portal/courses`) + 강의실 상세(`/portal/courses/:id`, role별 분기 + 로스터 + CSV)
+- [x] **Phase 3** — `PortalHomeView` role별 "수강/담당 과목" 섹션
+- [x] **Phase 4** — KPI 대시보드(`/portal/kpi`) + 필터 + CSV 2종
+- [x] **Phase 5** — 수강신청(`/portal/registration`), 아래 참고
+- [x] **Phase 6** — 강의계획서 작성(`/portal/courses/:id/syllabus`), 아래 참고
+- [x] **Phase 7** — 포탈 로그인 게이트(`/portal/login`) + 강의계획서 보기/수정 토글 + 관리자 수강신청 내역 CSV, 아래 참고
+
+## Phase 5 — 수강신청(`/portal/registration`)
+
+- 참고 이미지: `docs/portalscreenshot.png`(연세포털 수강신청 화면). 별도 페이지로 신규 추가 — 두 페이지의 UI 톤이 서로 다르므로 하나로 합치지 않음. 수강신청 액션(버튼)은 이 페이지로 일원화하고, 기존 수강편람(`/portal/courses`)에 있던 인라인 수강신청 버튼/컬럼은 제거해 순수 조회용 표로 정리함(중복 액션 지점 방지).
+- **`courses.js` 필드 확장**: `courseCode`(개설전공 약어+id), `section`, `grade`, `sessionType`, `cancelled`, `lectureTime`, `room`, `language`, `deliveryMode`, `evaluationMethod`, `exchangeAllowed`, `note`를 파일 하단에서 프로그래매틱하게 파생 부여(수기 작성 아님). `language`/`exchangeAllowed`는 `name`이 영문 제목인지에서 논리적으로 유도(영문 강의 → 교환학생 수강가능 Y). `cancelled`는 데모용으로 2개 과목만 지정.
+- **페이지 구성**: 안내문(접기/펼치기) → **수강신청 목록**(현재 학생이 이미 신청한 과목 요약표, 총 건수·학점) → 검색 필터바(학년도/학기·대학·개설전공·학년·학점 + 키워드 필드선택(학정번호/교과목명/담당교수)+검색어 + 영어강의/온라인강의 전체조회 바로가기 + 조회 버튼, "초안 필터 → 조회 클릭 후 표에 반영" 방식, 드롭다운은 폭에 맞춰 인라인 배치·검색어 입력창만 남는 공간을 채움) → 결과표(스크린샷처럼 셀마다 테두리를 그려 구분감을 줌, 총건수 표시, 엑셀 다운로드) → 학생 role에서만 수강신청 액션 컬럼(사각형에 가까운 회색 버튼, hover 시 대각선 하이라이트가 스치는 효과).
+- **주의(재발 방지)**: `isEnrolled`/`수강신청 목록`을 처음엔 `queries.js`의 `isStudentEnrolledByName`/`enrollmentsForStudentName` 헬퍼로 구현했더니, 그 헬퍼들이 `enrollments.js`를 별도로 import한 "일반 배열" 참조를 읽어서 Vue가 그 읽기를 반응형으로 추적하지 못해 수강신청 버튼을 눌러도 화면이 갱신되지 않는 버그가 있었음(데이터는 실제로 바뀌지만 리렌더가 안 됨). 컴포넌트 자신의 `this.enrollments`(반응형 프록시)를 직접 필터링하는 방식으로 바꿔서 해결 — 이 페이지처럼 등록 직후 즉시 UI에 반영돼야 하는 화면에서는 `queries.js` 조인 헬퍼 대신 `this.enrollments`를 직접 읽을 것.
+- 수강신청 로직은 `enrollments`에 push하는 방식(`registrationOpen && !cancelled && !isEnrolled`일 때만 신청 가능).
+- 스크린샷의 학정번호 하단 4개 아이콘(동일교과/개요/계획/마일), 범례·캠퍼스 안내도 팝업 등 실제 기능이 없는 장식 UI는 생략.
+
+## Phase 6 — 강의계획서 작성(`/portal/courses/:id/syllabus`)
+
+- 참고 문서: `docs/강의 계획서 예시.pdf`(연세대 실제 수업계획서 양식). 기존 `CourseDetailView`의 파일 업로드 방식(PDF 다운받아 채워서 재업로드)을 완전히 대체 — 웹에서 직접 입력하는 게 더 편하다는 판단. `CourseDetailView`의 "강의계획서" 섹션은 이제 업로드 위젯 대신 이 페이지로 가는 링크("작성 완료"/"아직 작성되지 않았습니다" 상태 텍스트 + 버튼)만 남김.
+- **의도적으로 프로젝트 기본 톤을 안 씀**: 이 페이지는 "별도의 문서"라는 느낌을 줘야 한다는 요구사항 때문에 둥근 모서리/소프트 그림자/옐로·블루 모티브를 전혀 쓰지 않는다. 대신 `RegistrationView`에서 검증된 "표에 굵은 선을 그어 구분감을 주는" 접근을 그대로 재사용하되 더 극단적으로 — 검은 테두리(`border:1px solid #000`), `border-radius:0`, serif 폰트, 흰 배경만 사용해 스캔한 행정서식처럼 보이게 함. 다른 포탈 페이지와 톤이 확 달라지는 게 이 페이지의 의도된 특징.
+- **데이터**: `courses.js`의 `syllabus` 필드를 PDF 구조 그대로 확장(`examSchedule`, `professorContact`, `ta`, `overview`, `methodRatio`/`evalRatio`(%), `assignments`/`textbooks`(반복 행), `weeklyPlan`(16주 고정)). 과목마다 다른 값이 아닌 학교 공통 정책 문구(출석의무/장애학생지원/안전주의/수업운영안내)는 데이터로 안 두고 템플릿에 고정 텍스트로 둠. 데모로 과목 하나(id 25, 미래 윤리)만 완성된 내용을 시드하고 나머지는 전부 빈 값 — 학생 화면에서는 빈 값이 전부 "-"로 표시돼 실제 빈 서식처럼 보임.
+- **role 분기**: `isProfessor`면 셀이 `<input>`/`<textarea>`로 바뀌어 그 자리에서 바로 수정 가능(셀 안에 입력 필드가 테두리 없이 녹아들게 스타일링해서 보기 모드와 레이아웃이 거의 동일). 과제/교재 행은 "+ 행 추가"/"삭제" 버튼으로 배열 조작. 처음엔 "교수 role이면 항상 편집 가능"이었는데, Phase 7에서 "수정" 버튼을 눌러야 편집 모드로 들어가는 명시적 토글로 바꿈(아래 참고).
+- **주의(재발 방지, Phase 5와 동일 패턴)**: `course` computed가 컴포넌트 `data()`에 없는 `courses`를 직접 참조하면(모듈 최상단 import를 그대로 씀) Vue가 반응형으로 추적하지 못해서 과제/교재 행 추가 버튼이 화면에 반영되지 않는 문제가 있었음 — `courses`를 `data()`에 넣고 `this.courses.find(...)`로 조회하도록 고쳐서 해결. 이 프로젝트에서 공유 배열(`courses`/`enrollments` 등)을 쓰는 컴포넌트는 항상 `data()`를 통해 참조할 것.
+- **공용 컴포넌트로 분리**: 문서 전체를 `src/components/portal/SyllabusDocument.vue`(props: `course`)로 빼서 `SyllabusView.vue`(단독 라우트), `CourseDetailView.vue`(강의계획서 탭, 인라인), `SyllabusModal.vue`(수강편람·수강신청에서 과목명 클릭 시 모달) 세 곳이 전부 재사용. 수강편람/수강신청에서는 이제 과목명을 눌러도 강의실로 이동하지 않고 이 모달이 뜸(`Teleport to="body"`, Escape/배경클릭/닫기버튼으로 닫힘).
+
+## Phase 7 — 포탈 로그인 게이트 + 강의계획서 수정 토글 + 관리자 수강신청 내역 CSV
+
+- **로그인 게이트**: `/portal/login`(`PortalLoginView.vue`, 연세포털 로그인 화면 참고 — 사진+슬로건 좌측 패널/ID·PW 폼 우측 패널 카드, 다만 실제 안내문구는 우리 서비스와 무관해서 제거) 신설. `session.js`에 `isAuthenticated` 플래그 추가하고 `router.beforeEach`에서 `/portal/*`(로그인 페이지 제외) 접근 시 미인증이면 로그인 페이지로 리다이렉트. **아직 인증 백엔드가 없어 ID/PW 값과 무관하게 로그인 버튼 클릭 시 바로 통과**(임시). `PortalLayout`의 로그아웃 버튼도 이번에 실제로 연결(이전엔 핸들러가 없는 죽은 버튼이었음) — `isAuthenticated`를 false로 되돌리고 로그인 페이지로 이동.
+  - QA 주의: `goto`로 URL을 직접 이동하면 페이지 전체가 새로고침되어 `session.js` 모듈이 재초기화되면서 `isAuthenticated`도 다시 false로 리셋됨(다른 공유 상태와 동일한 주의사항, 위 참고). 로그인 이후 테스트는 사이드바 클릭 등 SPA 네비게이션으로 이동할 것.
+- **강의계획서 수정 토글**: `SyllabusDocument.vue`에 `editing`(로컬 상태) + `canEdit`(`isProfessor && editing`) computed 추가. 기존에 템플릿 전체에 흩어져 있던 `v-if="isProfessor"`(약 44곳)를 전부 `v-if="canEdit"`로 교체하고, 문서 제목 옆에 "수정"/"수정 완료" 토글 버튼을 추가 — 교수 role이어도 기본은 읽기 전용이고 버튼을 눌러야 편집 모드로 들어감.
+- **관리자 수강신청 내역(CSV)**: `AdminDashboardView`에 "수강신청 내역" 탭 신설. 컨소시엄 참여 대학마다 수강신청 시스템 API 연동이 어려워서, 관리자가 그날그날의 신청 내역을 수동으로 CSV로 내려받아 각 대학에 전달하는 운영 방식을 반영한 기능.
+  - `enrollments.js`에 학기별 수강신청 기간(`REGISTRATION_PERIOD_START`, 5일간 `REGISTRATION_PERIOD_DAYS`)을 정의하고, 모든 수강신청 행(`CURATED` 시딩 포함)에 그 5일 창 내의 날짜로 `registeredAt`을 결정적으로 부여. 앱에서 실제로 수강신청 버튼을 눌러 생기는 새 행(`RegistrationView`/`CourseDetailView`의 `applyRegistration`)은 `new Date()` 기준 오늘 날짜로 `registeredAt`을 채워서, 라이브 데모 중 등록한 내역도 관리자 화면에서 바로 확인 가능.
+  - 화면 구성: 날짜 선택(`<input type="date">`, 수강신청 기간으로 min/max 제한) → 대학별 건수 요약 pill → 총건수 + CSV 다운로드 → 조인된 상세 테이블(학기/소속대학/학생명/학번/학과/교과목명/담당교수/상태). `queries.js`의 `joinedEnrollments()`는 원래 학교 참조하는 `enrollments`를 그대로 읽는데, Phase 5에서 겪은 반응형 버그를 피하려고 `joinedEnrollments(this.enrollments.filter(...))` 형태로 컴포넌트 자신의 반응형 `this.enrollments`를 먼저 필터링해서 넘기는 방식으로 호출.
 
 ## 참고
 

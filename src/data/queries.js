@@ -17,6 +17,7 @@ export function joinedEnrollments(list = enrollments) {
       id: e.id,
       semester: e.semester,
       status: e.status,
+      registeredAt: e.registeredAt || '',
       studentId: e.studentId,
       courseId: e.courseId,
       studentName: student?.name || '',

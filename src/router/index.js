@@ -5,6 +5,7 @@ import IntroLayout from '../views/intro/IntroLayout.vue'
 import SupportLayout from '../views/support/SupportLayout.vue'
 import ShareLayout from '../views/share/ShareLayout.vue'
 import BulletinLayout from '../views/bulletin/BulletinLayout.vue'
+import session from '../data/session.js'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -180,6 +181,12 @@ const router = createRouter({
       ]
     },
     {
+      path: '/portal/login',
+      name: 'portal-login',
+      component: () => import('../views/portal/PortalLoginView.vue'),
+      meta: { bare: true }
+    },
+    {
       path: '/portal',
       component: () => import('../views/portal/PortalLayout.vue'),
       meta: { bare: true },
@@ -198,6 +205,16 @@ const router = createRouter({
           path: 'courses/:id',
           name: 'portal-course-detail',
           component: () => import('../views/portal/CourseDetailView.vue')
+        },
+        {
+          path: 'courses/:id/syllabus',
+          name: 'portal-course-syllabus',
+          component: () => import('../views/portal/SyllabusView.vue')
+        },
+        {
+          path: 'registration',
+          name: 'portal-registration',
+          component: () => import('../views/portal/RegistrationView.vue')
         },
         {
           path: 'kpi',
@@ -227,6 +244,12 @@ const router = createRouter({
       ]
     }
   ]
+})
+
+router.beforeEach((to) => {
+  if (to.path.startsWith('/portal') && to.name !== 'portal-login' && !session.isAuthenticated) {
+    return { name: 'portal-login' }
+  }
 })
 
 export default router
