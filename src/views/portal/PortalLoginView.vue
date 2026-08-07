@@ -1,19 +1,48 @@
 <script>
 import session from '../../data/session.js'
+import * as authApi from '../../api/auth.js'
+import AlertModal from '../../components/portal/AlertModal.vue'
 
 export default {
   name: 'PortalLoginView',
+  components: { AlertModal },
   data() {
     return {
-      studentId: '',
-      password: ''
+      email: '',
+      password: '',
+      error: '',
+      submitting: false
     }
   },
   methods: {
-    login() {
-      // 임시 인증: 백엔드가 없어 ID/PW 값과 무관하게 로그인 버튼을 누르면 바로 통과시킨다.
-      session.isAuthenticated = true
-      this.$router.push('/portal')
+    async login() {
+      this.error = ''
+      this.submitting = true
+      try {
+        const tokens = await authApi.login(this.email, this.password)
+        session.accessToken = tokens.access_token
+        session.refreshToken = tokens.refresh_token
+        localStorage.setItem('accessToken', tokens.access_token)
+        localStorage.setItem('refreshToken', tokens.refresh_token)
+
+        const me = await authApi.getMe()
+        session.role = me.profile_type === 'professor' ? 'professor' : 'student'
+        session.roles = me.roles || []
+        if (me.profile_type === 'professor') {
+          session.professorName = me.name || session.professorName
+        } else if (me.profile_type === 'staff') {
+          session.staffName = me.name || session.staffName
+        } else {
+          session.studentName = me.name || session.studentName
+        }
+
+        session.isAuthenticated = true
+        this.$router.push('/portal')
+      } catch (e) {
+        this.error = e?.response?.data?.detail || '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.'
+      } finally {
+        this.submitting = false
+      }
     }
   }
 }
@@ -33,13 +62,22 @@ export default {
           <span class="login-brand-text">HUSS 포탈</span>
         </div>
         <form @submit.prevent="login">
-          <input v-model="studentId" type="text" placeholder="학번(교번) (ID No.)" />
+          <input v-model="email" type="email" placeholder="이메일 (Email)" />
           <input v-model="password" type="password" placeholder="비밀번호 (Password)" />
-          <button type="submit" class="login-submit">로그인(Login)</button>
+          <button type="submit" class="login-submit" :disabled="submitting">
+            {{ submitting ? '로그인 중...' : '로그인(Login)' }}
+          </button>
         </form>
+        <p class="login-demo-hint">
+          데모 계정(비밀번호 전부 huss1234!)<br />
+          학생: student@yonsei.ac.kr · 일반교수: professor@yonsei.ac.kr<br />
+          핵심교수: admin@yonsei.ac.kr · 운영진: staff@yonsei.ac.kr<br />
+          관리자: super@yonsei.ac.kr
+        </p>
         <p class="login-footnote">이용 후 반드시 로그아웃 해주세요.<br />Please be sure to log out after use.</p>
       </div>
     </div>
+    <AlertModal :message="error" @close="error = ''" />
   </div>
 </template>
 
@@ -171,6 +209,21 @@ export default {
 
 .login-submit:hover {
   background: var(--color-primary);
+}
+
+.login-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-demo-hint {
+  margin: 16px 0 0;
+  font-size: 12px;
+  color: var(--color-muted);
+  line-height: 1.6;
+  background: var(--bg-soft);
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 
 .login-footnote {

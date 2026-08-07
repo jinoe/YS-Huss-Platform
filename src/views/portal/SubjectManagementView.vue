@@ -1,56 +1,102 @@
 <script>
-import subjectApprovals from '../../data/subjectApprovals.js'
+import LoadingState from '../../components/portal/LoadingState.vue'
+import AlertModal from '../../components/portal/AlertModal.vue'
+import * as professorApi from '../../api/professor.js'
 
-const STATUS_CLASS = { 승인대기: 'pending', 운영중: 'active', 반려: 'rejected' }
+const STATUS_LABELS = {
+  draft: '초안',
+  pending: '승인대기',
+  approved: '승인됨(운영대기)',
+  rejected: '반려',
+  active: '운영중',
+  closed: '종료',
+  archived: '보관됨'
+}
+const STATUS_CLASS = {
+  pending: 'pending',
+  active: 'active',
+  rejected: 'rejected'
+}
 
 export default {
   name: 'SubjectManagementView',
+  components: { LoadingState, AlertModal },
   data() {
     return {
-      subjects: subjectApprovals,
+      subjects: [],
+      loading: true,
+      loadError: '',
+      actionError: '',
+      submitting: false,
       editingId: null,
-      form: { name: '', type: '전공', credit: 3, semester: '2026-2', capacity: 30, intro: '' }
+      form: { name: '', type: '공통교과', credit: 3, semester: '2026-2', capacity: 30, waitlistCapacity: 0, intro: '' }
     }
   },
+  async created() {
+    await this.loadSubjects()
+  },
   methods: {
+    async loadSubjects() {
+      this.loading = true
+      this.loadError = ''
+      try {
+        this.subjects = await professorApi.myOfferings()
+      } catch (e) {
+        this.loadError = '담당 과목을 불러오지 못했습니다.'
+        console.error('[api] professor.myOfferings', e)
+      }
+      this.loading = false
+    },
+    statusLabel(status) {
+      return STATUS_LABELS[status] || status
+    },
     statusClass(status) {
       return STATUS_CLASS[status] || ''
     },
     resetForm() {
       this.editingId = null
-      this.form = { name: '', type: '전공', credit: 3, semester: '2026-2', capacity: 30, intro: '' }
+      this.form = { name: '', type: '공통교과', credit: 3, semester: '2026-2', capacity: 30, waitlistCapacity: 0, intro: '' }
     },
     editSubject(item) {
       this.editingId = item.id
       this.form = {
         name: item.name,
-        type: item.type,
+        type: '공통교과',
         credit: item.credit,
         semester: item.semester,
         capacity: item.capacity ?? 30,
-        intro: item.intro ?? ''
+        waitlistCapacity: item.waitlistCapacity ?? 0,
+        intro: ''
       }
     },
-    submitForm() {
-      if (this.editingId !== null) {
-        const item = this.subjects.find((s) => s.id === this.editingId)
-        if (item) Object.assign(item, this.form)
-      } else {
-        this.subjects.push({
-          id: Date.now(),
-          professor: '이진호',
-          submittedAt: new Date().toISOString().slice(0, 10),
-          status: '승인대기',
-          ...this.form
-        })
+    async submitForm() {
+      if (this.submitting) return
+      this.submitting = true
+      this.actionError = ''
+      try {
+        if (this.editingId !== null) {
+          await professorApi.updateOffering(this.editingId, {
+            capacity: this.form.capacity,
+            waitlist_capacity: this.form.waitlistCapacity
+          })
+        } else {
+          await professorApi.createOffering({
+            name_ko: this.form.name,
+            term_code: this.form.semester,
+            credit: this.form.credit,
+            capacity: this.form.capacity,
+            waitlist_capacity: this.form.waitlistCapacity,
+            category: this.form.type,
+            description: this.form.intro || null
+          })
+        }
+        await this.loadSubjects()
+        this.resetForm()
+      } catch (e) {
+        this.actionError = this.editingId !== null ? '수정에 실패했습니다.' : '등록에 실패했습니다.'
+        console.error('[api] professor offering submit', e)
       }
-      this.resetForm()
-    },
-    removeSubject(item) {
-      if (!window.confirm(`'${item.name}' 과목을 삭제할까요?`)) return
-      const index = this.subjects.findIndex((s) => s.id === item.id)
-      if (index !== -1) this.subjects.splice(index, 1)
-      if (this.editingId === item.id) this.resetForm()
+      this.submitting = false
     }
   }
 }
@@ -59,14 +105,17 @@ export default {
 <template>
   <section class="page">
     <h3>담당 과목</h3>
-    <table class="subject-mgmt-table">
+    <LoadingState v-if="loading" />
+    <p v-if="!loading && loadError" class="load-error">{{ loadError }}</p>
+    <AlertModal :message="actionError" @close="actionError = ''" />
+    <table v-if="!loading" class="subject-mgmt-table">
       <thead>
         <tr>
           <th>교과목명</th>
-          <th>구분</th>
           <th>학점</th>
           <th>학기</th>
           <th>정원</th>
+          <th>대기정원</th>
           <th>상태</th>
           <th>관리</th>
         </tr>
@@ -74,39 +123,32 @@ export default {
       <tbody>
         <tr v-for="item in subjects" :key="item.id">
           <td class="name">{{ item.name }}</td>
-          <td>{{ item.type }}</td>
           <td>{{ item.credit }}</td>
           <td>{{ item.semester }}</td>
           <td>{{ item.capacity ?? '-' }}</td>
-          <td><span class="status" :class="statusClass(item.status)">{{ item.status }}</span></td>
+          <td>{{ item.waitlistTaken ?? 0 }}/{{ item.waitlistCapacity ?? 0 }}</td>
+          <td><span class="status" :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span></td>
           <td class="actions">
             <button type="button" class="btn-edit" @click="editSubject(item)">수정</button>
-            <button type="button" class="btn-delete" @click="removeSubject(item)">삭제</button>
           </td>
         </tr>
-        <tr v-if="!subjects.length">
+        <tr v-if="!loading && !subjects.length">
           <td colspan="7" class="empty">등록된 교과목이 없습니다.</td>
         </tr>
       </tbody>
     </table>
+    <!-- 삭제: 백엔드에 개설 삭제 API가 없어 버튼을 두지 않는다(있으면 눌러도 실제로 아무 일도 안 일어나는 더미가 됨). -->
 
     <h3>{{ editingId !== null ? '교과목 수정' : '교과목 등록' }}</h3>
     <form class="subject-form" @submit.prevent="submitForm">
       <div class="form-grid">
         <div class="form-group">
           <label>교과목명</label>
-          <input v-model="form.name" type="text" placeholder="예: 이야기로 미래읽기" required />
-        </div>
-        <div class="form-group">
-          <label>구분</label>
-          <select v-model="form.type">
-            <option value="전공">전공</option>
-            <option value="교양">교양</option>
-          </select>
+          <input v-model="form.name" type="text" placeholder="예: 이야기로 미래읽기" required :disabled="editingId !== null" />
         </div>
         <div class="form-group">
           <label>학점</label>
-          <select v-model.number="form.credit">
+          <select v-model.number="form.credit" :disabled="editingId !== null">
             <option :value="1">1학점</option>
             <option :value="2">2학점</option>
             <option :value="3">3학점</option>
@@ -114,20 +156,24 @@ export default {
         </div>
         <div class="form-group">
           <label>학기</label>
-          <input v-model="form.semester" type="text" placeholder="예: 2026-2" required />
+          <input v-model="form.semester" type="text" placeholder="예: 2026-2" required :disabled="editingId !== null" />
         </div>
         <div class="form-group">
           <label>정원</label>
           <input v-model.number="form.capacity" type="number" min="1" required />
         </div>
+        <div class="form-group">
+          <label>대기정원</label>
+          <input v-model.number="form.waitlistCapacity" type="number" min="0" />
+        </div>
       </div>
       <div class="form-group">
         <label>과목 소개</label>
-        <textarea v-model="form.intro" rows="3" placeholder="과목 개요를 간단히 작성해 주세요" />
+        <textarea v-model="form.intro" rows="3" placeholder="과목 개요를 간단히 작성해 주세요" :disabled="editingId !== null" />
       </div>
       <div class="form-actions">
-        <button v-if="editingId !== null" type="button" class="btn-delete" @click="resetForm">취소</button>
-        <button type="submit" class="btn-primary">{{ editingId !== null ? '수정하기' : '등록하기' }}</button>
+        <button v-if="editingId !== null" type="button" class="btn-delete" :disabled="submitting" @click="resetForm">취소</button>
+        <button type="submit" class="btn-primary" :disabled="submitting">{{ submitting ? '처리 중...' : (editingId !== null ? '정원 수정하기' : '등록하기') }}</button>
       </div>
     </form>
   </section>
@@ -147,6 +193,15 @@ h3 {
 
 h3 + .subject-form {
   margin-top: 0;
+}
+
+.load-error {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #c0392b;
+  font-size: 13px;
 }
 
 .subject-mgmt-table {
@@ -290,6 +345,12 @@ h3 + .subject-form {
   padding: 12px 28px;
   font-size: 14px;
   font-weight: 700;
+}
+
+.btn-primary:disabled,
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

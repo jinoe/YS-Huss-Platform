@@ -1,88 +1,92 @@
 <script>
-import session from '../../data/session.js'
-
-const UNIVERSITY_LABELS = {
-  yonsei: '연세대학교',
-  gongju: '국립공주대학교',
-  dongeui: '동의대학교',
-  ewha: '이화여자대학교',
-  handong: '한동대학교'
-}
+import * as professorApi from '../../api/professor.js'
+import AlertModal from './AlertModal.vue'
 
 export default {
   name: 'SyllabusDocument',
+  components: { AlertModal },
   props: {
     course: {
       type: Object,
       required: true
+    },
+    // true면 담당교수 화면 — 개요/주별계획을 직접 수정할 수 있다.
+    // (제출된 실제 요구사항: "간단히 개요 + 주차별 내용만" — 시험일정/교수연락처 등
+    // 나머지 강의계획서 항목은 대응 데이터가 없어 계속 주석 처리 상태로 둔다.)
+    editable: {
+      type: Boolean,
+      default: false
     }
   },
+  emits: ['saved'],
   data() {
     return {
-      session,
-      editing: false
-    }
-  },
-  computed: {
-    isProfessor() {
-      return this.session.role === 'professor'
-    },
-    canEdit() {
-      return this.isProfessor && this.editing
-    },
-    universityLabel() {
-      return UNIVERSITY_LABELS[this.course.university] || this.course.university
+      editing: false,
+      saving: false,
+      saveError: '',
+      form: { objectives: '', weeks: [] }
     }
   },
   methods: {
-    toggleEditing() {
-      this.editing = !this.editing
+    startEdit() {
+      this.saveError = ''
+      this.form.objectives = this.course.objectives || ''
+      this.form.weeks = Array.from({ length: 16 }, (_, i) => {
+        const week = i + 1
+        const existing = (this.course.syllabusWeeks || []).find((w) => w.week === week)
+        return { week_no: week, topic: existing?.topic || '', activity: existing?.activity || '' }
+      })
+      this.editing = true
     },
-    now() {
-      return new Date().toISOString().slice(0, 19).replace('T', ' ')
+    cancelEdit() {
+      this.editing = false
     },
-    touch() {
-      const s = this.course.syllabus
-      if (!s.registeredAt) s.registeredAt = this.now()
-      s.updatedAt = this.now()
-    },
-    addAssignment() {
-      this.course.syllabus.assignments.push({ title: '', dueDate: '', type: '' })
-      this.touch()
-    },
-    removeAssignment(idx) {
-      this.course.syllabus.assignments.splice(idx, 1)
-      this.touch()
-    },
-    addTextbook() {
-      this.course.syllabus.textbooks.push({ type: '', title: '', author: '', publisher: '', year: '', isbn: '' })
-      this.touch()
-    },
-    removeTextbook(idx) {
-      this.course.syllabus.textbooks.splice(idx, 1)
-      this.touch()
+    async saveSyllabus() {
+      this.saving = true
+      this.saveError = ''
+      try {
+        // PATCH는 초안(draft) 상태에서만 가능하고 발행된 계획서는 다시 못 고친다
+        // (backend/app/api/v1/professor.py의 edit_syllabus) — 그래서 저장할 때마다
+        // 새 버전을 만들고(parse) 채운 뒤(edit) 바로 발행(publish)한다.
+        const draft = await professorApi.parseSyllabus(this.course.id, {
+          text: '(교수 직접 입력)',
+          source_file_name: null
+        })
+        const weeks = this.form.weeks.map((w) => ({
+          week_no: w.week_no,
+          topic: w.topic || null,
+          activity: w.activity || null
+        }))
+        await professorApi.editSyllabus(draft.id, { objectives: this.form.objectives || null, weeks })
+        await professorApi.publishSyllabus(draft.id)
+        this.editing = false
+        this.$emit('saved')
+      } catch (e) {
+        this.saveError = e?.response?.data?.detail?.message || e?.response?.data?.detail || '저장에 실패했습니다. 잠시 후 다시 시도해주세요.'
+        console.error('[api] syllabus save', e)
+      }
+      this.saving = false
     }
   }
 }
 </script>
 
 <template>
-  <div class="sheet" @input="touch">
+  <div class="sheet">
     <div class="doc-header">
       <h1 class="doc-title">{{ course.semester }} 수업계획서</h1>
-      <button v-if="isProfessor" type="button" class="btn-edit-toggle" @click="toggleEditing">
-        {{ editing ? '수정 완료' : '수정' }}
-      </button>
+      <div v-if="editable" class="doc-header-actions">
+        <button v-if="!editing" type="button" class="btn-edit-toggle" @click="startEdit">수정</button>
+        <template v-else>
+          <button type="button" class="btn-edit-toggle" :disabled="saving" @click="cancelEdit">취소</button>
+          <button type="button" class="btn-edit-toggle primary" :disabled="saving" @click="saveSyllabus">{{ saving ? '저장 중...' : '저장(발행)' }}</button>
+        </template>
+      </div>
     </div>
+    <AlertModal :message="saveError" @close="saveError = ''" />
 
     <table class="doc-table">
       <tbody>
-        <tr>
-          <th>최초등록일</th>
-          <td>{{ course.syllabus.registeredAt || '-' }}</td>
-          <th>최종수정일</th>
-          <td>{{ course.syllabus.updatedAt || '-' }}</td>
-        </tr>
         <tr>
           <th>교과목명</th>
           <td>{{ course.name }}</td>
@@ -90,29 +94,46 @@ export default {
           <td>{{ course.courseCode }}-{{ course.section }}</td>
         </tr>
         <tr>
-          <th>학점/강의시간</th>
-          <td>{{ course.credit }}/{{ course.lectureTime }}</td>
+          <th>학점</th>
+          <td>{{ course.credit }}</td>
           <th>개설학과</th>
           <td>{{ course.group }}</td>
         </tr>
         <tr>
           <th>수업시간</th>
-          <td>{{ course.lectureTime }}</td>
+          <td>{{ course.scheduleText || '미정' }}</td>
           <th>강의실</th>
-          <td>{{ course.room }}</td>
+          <td>{{ course.locationText || '미정' }}</td>
         </tr>
+      </tbody>
+    </table>
+
+    <!--
+      아래 항목들(시험일시/교수 연락처·조교/수업방법·성적평가 비율/과제/교재/유의사항)은
+      학생에게 노출되는 강의계획서 API(GET /courses/{id})에 대응 데이터가 없다.
+      실데이터 없이 보여주면 더미 정보가 되므로, 실제 백엔드 필드가 붙기 전까지 주석 처리한다.
+      (교과목 개요만 실제 Syllabus.objectives 필드가 있어 아래에서 real로 다룬다.)
+
+    <table class="doc-table">
+      <tbody>
+        <tr>
+          <th colspan="4">최초등록일 / 최종수정일</th>
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="doc-table">
+      <tbody>
         <tr>
           <th>시험일시</th>
           <td colspan="3" class="split-cell">
             <span class="split-item">
               <span class="split-label">중간시험</span>
-              <input v-if="canEdit" v-model="course.syllabus.examSchedule.midterm" type="text" placeholder="예: 10월 중간고사 기간" />
-              <span v-else>{{ course.syllabus.examSchedule.midterm || '-' }}</span>
+              <span>{{ course.syllabus.examSchedule.midterm || '-' }}</span>
             </span>
             <span class="split-item">
               <span class="split-label">기말시험</span>
-              <input v-if="canEdit" v-model="course.syllabus.examSchedule.final" type="text" placeholder="예: 12월 기말고사 기간" />
-              <span v-else>{{ course.syllabus.examSchedule.final || '-' }}</span>
+              <span>{{ course.syllabus.examSchedule.final || '-' }}</span>
             </span>
           </td>
         </tr>
@@ -130,169 +151,124 @@ export default {
           <th>성명</th>
           <td>{{ course.professor }}</td>
           <th>전화</th>
-          <td><input v-if="canEdit" v-model="course.syllabus.professorContact.phone" type="text" /><span v-else>{{ course.syllabus.professorContact.phone || '-' }}</span></td>
+          <td>{{ course.syllabus.professorContact.phone || '-' }}</td>
         </tr>
         <tr>
           <th>소속</th>
-          <td>{{ universityLabel }} {{ course.group }}</td>
+          <td>{{ course.universityLabel }} {{ course.group }}</td>
           <th>메일</th>
-          <td><input v-if="canEdit" v-model="course.syllabus.professorContact.email" type="text" /><span v-else>{{ course.syllabus.professorContact.email || '-' }}</span></td>
+          <td>{{ course.syllabus.professorContact.email || '-' }}</td>
         </tr>
         <tr>
           <th>연구실</th>
-          <td><input v-if="canEdit" v-model="course.syllabus.professorContact.office" type="text" /><span v-else>{{ course.syllabus.professorContact.office || '-' }}</span></td>
+          <td>{{ course.syllabus.professorContact.office || '-' }}</td>
           <th>면담정보</th>
-          <td><input v-if="canEdit" v-model="course.syllabus.professorContact.officeHours" type="text" /><span v-else>{{ course.syllabus.professorContact.officeHours || '-' }}</span></td>
+          <td>{{ course.syllabus.professorContact.officeHours || '-' }}</td>
         </tr>
         <tr>
           <th>조교정보</th>
           <th>성명</th>
-          <td><input v-if="canEdit" v-model="course.syllabus.ta.name" type="text" /><span v-else>{{ course.syllabus.ta.name || '-' }}</span></td>
+          <td>{{ course.syllabus.ta.name || '-' }}</td>
           <th>연락처</th>
-          <td><input v-if="canEdit" v-model="course.syllabus.ta.phone" type="text" /><span v-else>{{ course.syllabus.ta.phone || '-' }}</span></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <table class="doc-table">
-      <tbody>
-        <tr>
-          <th class="wide-label">교과목 개요<br /><span class="sub">교과목에 대한 간략한 소개</span></th>
-          <td>
-            <textarea v-if="canEdit" v-model="course.syllabus.overview" rows="4" placeholder="교과목 개요를 입력하세요" />
-            <p v-else class="readonly-text">{{ course.syllabus.overview || '-' }}</p>
-          </td>
+          <td>{{ course.syllabus.ta.phone || '-' }}</td>
         </tr>
       </tbody>
     </table>
 
     <table class="doc-table ratio-table">
       <thead>
-        <tr class="ratio-caption-row">
-          <th colspan="5">수업방법(%) — 합계 없이 100이 되도록</th>
-        </tr>
-        <tr>
-          <th>강의</th>
-          <th>실습</th>
-          <th>발표</th>
-          <th>토론</th>
-          <th>팀프로젝트</th>
-        </tr>
+        <tr class="ratio-caption-row"><th colspan="5">수업방법(%)</th></tr>
+        <tr><th>강의</th><th>실습</th><th>발표</th><th>토론</th><th>팀프로젝트</th></tr>
       </thead>
       <tbody>
         <tr>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.methodRatio.lecture" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.methodRatio.lecture || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.methodRatio.practice" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.methodRatio.practice || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.methodRatio.presentation" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.methodRatio.presentation || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.methodRatio.discussion" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.methodRatio.discussion || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.methodRatio.teamProject" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.methodRatio.teamProject || 0 }}%</span></td>
+          <td>{{ course.syllabus.methodRatio.lecture || 0 }}%</td>
+          <td>{{ course.syllabus.methodRatio.practice || 0 }}%</td>
+          <td>{{ course.syllabus.methodRatio.presentation || 0 }}%</td>
+          <td>{{ course.syllabus.methodRatio.discussion || 0 }}%</td>
+          <td>{{ course.syllabus.methodRatio.teamProject || 0 }}%</td>
         </tr>
       </tbody>
     </table>
 
     <table class="doc-table ratio-table">
       <thead>
-        <tr class="ratio-caption-row">
-          <th colspan="7">성적평가방법(%) — 합계값이 100이 되도록</th>
-        </tr>
-        <tr>
-          <th>중간시험</th>
-          <th>기말시험</th>
-          <th>퀴즈</th>
-          <th>개인과제</th>
-          <th>팀과제</th>
-          <th>출석</th>
-          <th>기타</th>
-        </tr>
+        <tr class="ratio-caption-row"><th colspan="7">성적평가방법(%)</th></tr>
+        <tr><th>중간시험</th><th>기말시험</th><th>퀴즈</th><th>개인과제</th><th>팀과제</th><th>출석</th><th>기타</th></tr>
       </thead>
       <tbody>
         <tr>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.evalRatio.midterm" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.evalRatio.midterm || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.evalRatio.final" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.evalRatio.final || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.evalRatio.quiz" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.evalRatio.quiz || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.evalRatio.individual" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.evalRatio.individual || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.evalRatio.team" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.evalRatio.team || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.evalRatio.attendance" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.evalRatio.attendance || 0 }}%</span></td>
-          <td><input v-if="canEdit" v-model.number="course.syllabus.evalRatio.etc" type="number" min="0" max="100" /><span v-else>{{ course.syllabus.evalRatio.etc || 0 }}%</span></td>
+          <td>{{ course.syllabus.evalRatio.midterm || 0 }}%</td>
+          <td>{{ course.syllabus.evalRatio.final || 0 }}%</td>
+          <td>{{ course.syllabus.evalRatio.quiz || 0 }}%</td>
+          <td>{{ course.syllabus.evalRatio.individual || 0 }}%</td>
+          <td>{{ course.syllabus.evalRatio.team || 0 }}%</td>
+          <td>{{ course.syllabus.evalRatio.attendance || 0 }}%</td>
+          <td>{{ course.syllabus.evalRatio.etc || 0 }}%</td>
         </tr>
       </tbody>
     </table>
 
     <table class="doc-table">
       <thead>
-        <tr>
-          <th colspan="3" class="section-caption">과제/레포트, 프로젝트 안내</th>
-        </tr>
-        <tr>
-          <th>과제명/프로젝트명 및 작성 방법</th>
-          <th>제출마감일</th>
-          <th>제출물유형 및 제출방법</th>
-          <th v-if="canEdit" class="row-action-col"></th>
-        </tr>
+        <tr><th colspan="3" class="section-caption">과제/레포트, 프로젝트 안내</th></tr>
+        <tr><th>과제명/프로젝트명 및 작성 방법</th><th>제출마감일</th><th>제출물유형 및 제출방법</th></tr>
       </thead>
       <tbody>
         <tr v-for="(a, idx) in course.syllabus.assignments" :key="idx">
-          <td><input v-if="canEdit" v-model="a.title" type="text" /><span v-else>{{ a.title || '-' }}</span></td>
-          <td><input v-if="canEdit" v-model="a.dueDate" type="text" /><span v-else>{{ a.dueDate || '-' }}</span></td>
-          <td><input v-if="canEdit" v-model="a.type" type="text" /><span v-else>{{ a.type || '-' }}</span></td>
-          <td v-if="canEdit" class="row-action-col"><button type="button" class="btn-row-remove" @click="removeAssignment(idx)">삭제</button></td>
+          <td>{{ a.title || '-' }}</td>
+          <td>{{ a.dueDate || '-' }}</td>
+          <td>{{ a.type || '-' }}</td>
         </tr>
-        <tr v-if="!course.syllabus.assignments.length">
-          <td colspan="3" class="empty-row">-</td>
-          <td v-if="canEdit" class="row-action-col"></td>
-        </tr>
+        <tr v-if="!course.syllabus.assignments.length"><td colspan="3" class="empty-row">-</td></tr>
       </tbody>
     </table>
-    <button v-if="canEdit" type="button" class="btn-row-add" @click="addAssignment">+ 과제 행 추가</button>
 
     <table class="doc-table">
       <tbody>
         <tr>
           <th>선수 추천과목</th>
-          <td><input v-if="canEdit" v-model="course.syllabus.prerequisite" type="text" /><span v-else>{{ course.syllabus.prerequisite || '-' }}</span></td>
+          <td>{{ course.syllabus.prerequisite || '-' }}</td>
           <th>온라인강의 사이트</th>
-          <td><input v-if="canEdit" v-model="course.syllabus.onlineSite" type="text" /><span v-else>{{ course.syllabus.onlineSite || '-' }}</span></td>
+          <td>{{ course.syllabus.onlineSite || '-' }}</td>
         </tr>
       </tbody>
     </table>
 
     <table class="doc-table">
       <thead>
-        <tr>
-          <th>교재구분</th>
-          <th>교재명</th>
-          <th>저자</th>
-          <th>출판사</th>
-          <th>출판년도</th>
-          <th>ISBN</th>
-          <th v-if="canEdit" class="row-action-col"></th>
-        </tr>
+        <tr><th>교재구분</th><th>교재명</th><th>저자</th><th>출판사</th><th>출판년도</th><th>ISBN</th></tr>
       </thead>
       <tbody>
         <tr v-for="(t, idx) in course.syllabus.textbooks" :key="idx">
-          <td><input v-if="canEdit" v-model="t.type" type="text" /><span v-else>{{ t.type || '-' }}</span></td>
-          <td><input v-if="canEdit" v-model="t.title" type="text" /><span v-else>{{ t.title || '-' }}</span></td>
-          <td><input v-if="canEdit" v-model="t.author" type="text" /><span v-else>{{ t.author || '-' }}</span></td>
-          <td><input v-if="canEdit" v-model="t.publisher" type="text" /><span v-else>{{ t.publisher || '-' }}</span></td>
-          <td><input v-if="canEdit" v-model="t.year" type="text" /><span v-else>{{ t.year || '-' }}</span></td>
-          <td><input v-if="canEdit" v-model="t.isbn" type="text" /><span v-else>{{ t.isbn || '-' }}</span></td>
-          <td v-if="canEdit" class="row-action-col"><button type="button" class="btn-row-remove" @click="removeTextbook(idx)">삭제</button></td>
+          <td>{{ t.type || '-' }}</td>
+          <td>{{ t.title || '-' }}</td>
+          <td>{{ t.author || '-' }}</td>
+          <td>{{ t.publisher || '-' }}</td>
+          <td>{{ t.year || '-' }}</td>
+          <td>{{ t.isbn || '-' }}</td>
         </tr>
-        <tr v-if="!course.syllabus.textbooks.length">
-          <td colspan="6" class="empty-row">-</td>
-          <td v-if="canEdit" class="row-action-col"></td>
-        </tr>
+        <tr v-if="!course.syllabus.textbooks.length"><td colspan="6" class="empty-row">-</td></tr>
       </tbody>
     </table>
-    <button v-if="canEdit" type="button" class="btn-row-add" @click="addTextbook">+ 교재 행 추가</button>
 
     <table class="doc-table">
       <tbody>
         <tr>
           <th class="wide-label">주요 학습자 유의사항</th>
+          <td><p class="readonly-text">{{ course.syllabus.notes || '-' }}</p></td>
+        </tr>
+      </tbody>
+    </table>
+    -->
+
+    <table class="doc-table">
+      <tbody>
+        <tr>
+          <th>교과목 개요</th>
           <td>
-            <textarea v-if="canEdit" v-model="course.syllabus.notes" rows="3" placeholder="유의사항을 입력하세요" />
-            <p v-else class="readonly-text">{{ course.syllabus.notes || '-' }}</p>
+            <textarea v-if="editing" v-model="form.objectives" rows="4" placeholder="교과목 개요를 입력하세요" />
+            <p v-else class="readonly-text">{{ course.objectives || '-' }}</p>
           </td>
         </tr>
       </tbody>
@@ -303,17 +279,25 @@ export default {
       <thead>
         <tr>
           <th>주차</th>
-          <th>기간</th>
           <th>수업내용 및 학습활동</th>
-          <th>비고</th>
         </tr>
       </thead>
-      <tbody>
-        <tr v-for="w in course.syllabus.weeklyPlan" :key="w.week">
+      <tbody v-if="editing">
+        <tr v-for="w in form.weeks" :key="w.week_no">
+          <td>{{ w.week_no }}주</td>
+          <td class="week-edit-cell">
+            <input v-model="w.topic" type="text" placeholder="주제" />
+            <input v-model="w.activity" type="text" placeholder="학습활동" />
+          </td>
+        </tr>
+      </tbody>
+      <tbody v-else>
+        <tr v-for="w in course.syllabusWeeks || []" :key="w.week">
           <td>{{ w.week }}주</td>
-          <td><input v-if="canEdit" v-model="w.period" type="text" placeholder="YYYY-MM-DD ~ YYYY-MM-DD" /><span v-else>{{ w.period || '-' }}</span></td>
-          <td><input v-if="canEdit" v-model="w.content" type="text" /><span v-else>{{ w.content || '-' }}</span></td>
-          <td><input v-if="canEdit" v-model="w.remark" type="text" /><span v-else>{{ w.remark || '-' }}</span></td>
+          <td>{{ w.topic || w.activity ? [w.topic, w.activity].filter(Boolean).join(' — ') : '-' }}</td>
+        </tr>
+        <tr v-if="!course.syllabusWeeks || !course.syllabusWeeks.length">
+          <td colspan="2" class="empty-row">주별계획이 아직 등록되지 않았습니다.</td>
         </tr>
       </tbody>
     </table>
@@ -357,9 +341,6 @@ export default {
 }
 
 .btn-edit-toggle {
-  position: absolute;
-  top: 0;
-  right: 0;
   border: 1px solid #000;
   background: #fff;
   padding: 6px 14px;
@@ -372,6 +353,24 @@ export default {
 .btn-edit-toggle:hover {
   background: #000;
   color: #fff;
+}
+
+.btn-edit-toggle.primary {
+  background: #000;
+  color: #fff;
+}
+
+.btn-edit-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.doc-header-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
 }
 
 .doc-subtitle {
@@ -409,45 +408,10 @@ export default {
   vertical-align: top;
 }
 
-.doc-table th.group-th {
-  width: 90px;
-  text-align: center;
-}
-
-.doc-table th.section-caption,
-.ratio-caption-row th {
-  background: #e8e8e8;
-  text-align: center;
-  width: auto;
-}
-
-.doc-table thead th {
-  text-align: center;
-  width: auto;
-}
-
 .sub {
   font-weight: 400;
   font-size: 11px;
   color: #444;
-}
-
-.split-cell {
-  display: flex;
-  gap: 24px;
-}
-
-.split-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
-.split-label {
-  font-weight: 700;
-  font-size: 12px;
-  white-space: nowrap;
 }
 
 .readonly-text {
@@ -456,75 +420,30 @@ export default {
   line-height: 1.6;
 }
 
-.empty-row {
-  text-align: center;
-  color: #666;
-}
-
-.row-action-col {
-  width: 60px;
-  text-align: center;
-}
-
-.ratio-table td {
-  text-align: center;
-}
-
-.doc-table input,
-.doc-table textarea {
+.doc-table textarea,
+.doc-table input {
   width: 100%;
-  border: none;
+  border: 1px solid #000;
   background: transparent;
   font-family: inherit;
   font-size: 13px;
   color: #000;
-  padding: 0;
+  padding: 6px 8px;
 }
 
-.ratio-table input {
+.week-edit-cell {
+  display: flex;
+  gap: 8px;
+}
+
+.week-edit-cell input {
+  flex: 1;
+}
+
+
+.empty-row {
   text-align: center;
-}
-
-.doc-table input:focus,
-.doc-table textarea:focus {
-  outline: 1px dashed #000;
-}
-
-.doc-table textarea {
-  resize: vertical;
-  line-height: 1.6;
-}
-
-.btn-row-add {
-  align-self: flex-start;
-  border: 1px solid #000;
-  background: #fff;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  margin: -8px 0 16px;
-}
-
-.btn-row-add:hover {
-  background: #000;
-  color: #fff;
-}
-
-.btn-row-remove {
-  border: 1px solid #000;
-  background: #fff;
-  padding: 3px 8px;
-  font-size: 11px;
-}
-
-.btn-row-remove:hover {
-  background: #000;
-  color: #fff;
-}
-
-.week-table td:nth-child(1) {
-  text-align: center;
-  width: 60px;
+  color: #666;
 }
 
 .policy-block p {
@@ -532,6 +451,11 @@ export default {
   color: #333;
   line-height: 1.7;
   margin: 0 0 4px;
+}
+
+.week-table td:nth-child(1) {
+  text-align: center;
+  width: 60px;
 }
 
 @media (max-width: 768px) {
@@ -542,10 +466,6 @@ export default {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
-  }
-  .split-cell {
-    flex-direction: column;
-    gap: 8px;
   }
 }
 </style>

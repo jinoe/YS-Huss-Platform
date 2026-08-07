@@ -1,10 +1,11 @@
 <script>
-import courses from '../../data/courses.js'
-import enrollments, { SEMESTERS } from '../../data/enrollments.js'
 import session from '../../data/session.js'
-import { studentByName, universityLabel } from '../../data/queries.js'
-import { studentProfile } from '../../data/currentUser.js'
+import { SEMESTERS } from '../../data/enrollments.js'
 import SyllabusModal from '../../components/portal/SyllabusModal.vue'
+import LoadingState from '../../components/portal/LoadingState.vue'
+import AlertModal from '../../components/portal/AlertModal.vue'
+import * as coursesApi from '../../api/courses.js'
+import * as enrollmentsApi from '../../api/enrollments.js'
 
 const UNIVERSITIES = [
   { key: '전체', label: '전체' },
@@ -22,99 +23,143 @@ const KEYWORD_FIELDS = [
   { key: '담당교수', label: '담당교수' }
 ]
 
+const OPEN_ENROLLMENT_STATUSES = ['applied', 'enrolled', 'waitlisted']
+
 function defaultFilters() {
   return {
     semester: '2026-2',
     university: '전체',
     group: '전체',
-    grade: '전체',
     credit: '전체',
     keywordField: '전체',
-    keyword: '',
-    language: '',
-    deliveryMode: ''
+    keyword: ''
   }
 }
 
 export default {
   name: 'RegistrationView',
-  components: { SyllabusModal },
+  components: { SyllabusModal, LoadingState, AlertModal },
   data() {
     return {
       session,
-      courses,
-      enrollments,
+      courses: [],
+      enrollments: [],
+      loading: true,
+      loadError: '',
+      alertMessage: '',
+      alertVariant: 'error',
       semesters: SEMESTERS,
       universities: UNIVERSITIES,
       keywordFields: KEYWORD_FIELDS,
       noticeOpen: true,
       modalCourse: null,
       draft: defaultFilters(),
-      applied: defaultFilters()
+      applied: defaultFilters(),
+      sortKey: '',
+      sortOrder: 1,
+      // 수강신청/철회 진행 중인 개설 id 집합 — 응답 오기 전 중복 클릭으로
+      // 같은 요청이 두 번 나가는 걸 막는다(두 번째 요청이 서버에서 409로 실패해
+      // "이미 취소된 신청입니다" 같은 에러가 뜨는 원인이었음).
+      pendingOfferingIds: new Set()
     }
+  },
+  async created() {
+    this.loading = true
+    try {
+      this.courses = await coursesApi.list()
+    } catch (e) {
+      this.loadError = '개설 교과목 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
+      console.error('[api] courses.list', e)
+    }
+    if (this.isStudent) {
+      try {
+        this.enrollments = await enrollmentsApi.mine()
+      } catch (e) {
+        console.error('[api] enrollments.mine', e)
+      }
+    }
+    this.loading = false
   },
   computed: {
     isStudent() {
       return this.session.role === 'student'
     },
     groups() {
-      return Array.from(new Set(this.courses.map((c) => c.group)))
-    },
-    currentStudent() {
-      return studentByName(this.session.studentName)
+      return Array.from(new Set(this.courses.map((c) => c.group).filter(Boolean)))
     },
     myEnrollments() {
-      if (!this.isStudent || !this.currentStudent) return []
+      if (!this.isStudent) return []
       return this.enrollments
-        .filter((e) => e.studentId === this.currentStudent.id && e.status === '수강' && e.semester === this.applied.semester)
+        .filter((e) => e.semester === this.applied.semester && OPEN_ENROLLMENT_STATUSES.includes(e.status))
         .map((e) => {
-          const course = this.courses.find((c) => c.id === e.courseId)
+          const course = this.courses.find((c) => c.id === e.offeringId)
           return {
             id: e.id,
+            offeringId: e.offeringId,
             courseCode: course?.courseCode,
             section: course?.section,
-            name: course?.name,
-            credit: course?.credit || 0,
-            professor: course?.professor,
-            lectureTime: course?.lectureTime,
-            room: course?.room
+            name: e.courseName,
+            credit: e.credit,
+            professor: e.professor,
+            lectureTime: course?.scheduleText || '미정',
+            room: course?.locationText || '미정',
+            status: e.status
           }
         })
     },
     myCredits() {
-      return this.myEnrollments.reduce((sum, r) => sum + r.credit, 0)
+      return this.myEnrollments.filter((r) => r.status !== 'waitlisted').reduce((sum, r) => sum + (r.credit || 0), 0)
     },
     filteredCourses() {
       const f = this.applied
       const keyword = f.keyword.trim().toLowerCase()
-      return this.courses.filter((c) => {
+      const filtered = this.courses.filter((c) => {
         if (c.semester !== f.semester) return false
         if (f.university !== '전체' && c.university !== f.university) return false
         if (f.group !== '전체' && c.group !== f.group) return false
-        if (f.grade !== '전체' && c.grade !== Number(f.grade)) return false
         if (f.credit !== '전체' && c.credit !== Number(f.credit)) return false
-        if (f.language && c.language !== f.language) return false
-        if (f.deliveryMode && c.deliveryMode !== f.deliveryMode) return false
         if (keyword) {
-          if (f.keywordField === '학정번호' && !c.courseCode.toLowerCase().includes(keyword)) return false
-          if (f.keywordField === '교과목명' && !c.name.toLowerCase().includes(keyword)) return false
-          if (f.keywordField === '담당교수' && !c.professor.toLowerCase().includes(keyword)) return false
-          if (
-            f.keywordField === '전체' &&
-            !c.name.toLowerCase().includes(keyword) &&
-            !c.professor.toLowerCase().includes(keyword) &&
-            !c.courseCode.toLowerCase().includes(keyword)
-          ) {
+          const code = (c.courseCode || '').toLowerCase()
+          const name = (c.name || '').toLowerCase()
+          const professor = (c.professor || '').toLowerCase()
+          if (f.keywordField === '학정번호' && !code.includes(keyword)) return false
+          if (f.keywordField === '교과목명' && !name.includes(keyword)) return false
+          if (f.keywordField === '담당교수' && !professor.includes(keyword)) return false
+          if (f.keywordField === '전체' && !name.includes(keyword) && !professor.includes(keyword) && !code.includes(keyword)) {
             return false
           }
         }
         return true
       })
+      return this.applySort(filtered)
     }
   },
   methods: {
+    toggleSort(key) {
+      if (this.sortKey === key) {
+        this.sortOrder = -this.sortOrder
+      } else {
+        this.sortKey = key
+        this.sortOrder = 1
+      }
+    },
+    applySort(list) {
+      if (!this.sortKey) return list
+      const key = this.sortKey
+      const dir = this.sortOrder
+      return [...list].sort((a, b) => {
+        let av = a[key]
+        let bv = b[key]
+        if (key === 'university') { av = this.uniLabel(av); bv = this.uniLabel(bv) }
+        if (av == null) av = ''
+        if (bv == null) bv = ''
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+        return String(av).localeCompare(String(bv), 'ko') * dir
+      })
+    },
     uniLabel(key) {
-      return universityLabel(key)
+      const u = this.universities.find((x) => x.key === key)
+      return u ? u.label : key
     },
     toggleNotice() {
       this.noticeOpen = !this.noticeOpen
@@ -122,51 +167,98 @@ export default {
     runQuery() {
       this.applied = { ...this.draft }
     },
-    quickFilter(type) {
-      this.draft = defaultFilters()
-      if (type === 'english') this.draft.language = '영어'
-      if (type === 'online') this.draft.deliveryMode = '온라인강의'
-      this.applied = { ...this.draft }
+    isPending(offeringId) {
+      return this.pendingOfferingIds.has(offeringId)
     },
-    isEnrolled(course) {
-      if (!this.currentStudent) return false
-      return this.enrollments.some(
-        (e) => e.studentId === this.currentStudent.id && e.courseId === course.id && e.semester === course.semester
+    isFull(course) {
+      return (course.seatsTaken || 0) >= (course.capacity || 0)
+    },
+    isWaitlistFull(course) {
+      return (course.waitlistTaken || 0) >= (course.waitlistCapacity || 0)
+    },
+    async applyRegistration(course) {
+      if (
+        !course.registrationOpen ||
+        course.isEnrolled ||
+        course.isWaitlisted ||
+        this.isPending(course.id) ||
+        (this.isFull(course) && this.isWaitlistFull(course))
+      ) {
+        return
+      }
+      this.pendingOfferingIds.add(course.id)
+      try {
+        const result = await enrollmentsApi.create(course.id)
+        if (result.enrollment.status === 'waitlisted') {
+          course.isWaitlisted = true
+          course.waitlistTaken = (course.waitlistTaken || 0) + 1
+        } else {
+          course.isEnrolled = true
+          course.seatsTaken = (course.seatsTaken || 0) + 1
+        }
+        this.enrollments.push(result.enrollment)
+        if (result.warning) {
+          this.alertVariant = 'warning'
+          this.alertMessage = result.warning
+        } else {
+          this.alertVariant = 'success'
+          this.alertMessage = '수강신청이 완료되었습니다.'
+        }
+      } catch (e) {
+        this.alertVariant = 'error'
+        this.alertMessage = e?.response?.data?.detail?.message || '수강신청에 실패했습니다. 잠시 후 다시 시도해주세요.'
+      }
+      this.pendingOfferingIds.delete(course.id)
+    },
+    async cancelRegistration(course) {
+      const enrollment = this.enrollments.find(
+        (e) => e.offeringId === course.id && OPEN_ENROLLMENT_STATUSES.includes(e.status)
       )
+      if (!enrollment) return
+      await this.cancelEnrollmentById(enrollment.id, course.id)
     },
-    applyRegistration(course) {
-      if (course.cancelled || !course.registrationOpen || this.isEnrolled(course)) return
-      this.enrollments.push({
-        id: Date.now(),
-        courseId: course.id,
-        semester: course.semester,
-        registeredAt: new Date().toISOString().slice(0, 10),
-        ...studentProfile(this.session.studentName),
-        status: '수강'
-      })
+    async cancelFromMyList(row) {
+      await this.cancelEnrollmentById(row.id, row.offeringId)
+    },
+    async cancelEnrollmentById(enrollmentId, offeringId) {
+      if (this.isPending(offeringId)) return
+      this.pendingOfferingIds.add(offeringId)
+      try {
+        await enrollmentsApi.cancel(enrollmentId)
+        const course = this.courses.find((c) => c.id === offeringId)
+        if (course) {
+          if (course.isWaitlisted) {
+            course.isWaitlisted = false
+            course.waitlistTaken = Math.max(0, (course.waitlistTaken || 0) - 1)
+          } else {
+            course.isEnrolled = false
+            course.seatsTaken = Math.max(0, (course.seatsTaken || 0) - 1)
+          }
+        }
+        this.enrollments = this.enrollments.filter((e) => e.id !== enrollmentId)
+        this.alertVariant = 'success'
+        this.alertMessage = '수강철회가 완료되었습니다.'
+      } catch (e) {
+        this.alertVariant = 'error'
+        this.alertMessage = e?.response?.data?.detail?.message || '수강철회에 실패했습니다. 잠시 후 다시 시도해주세요.'
+      }
+      this.pendingOfferingIds.delete(offeringId)
     },
     downloadCsv() {
-      const header = ['순번', '학기', '캠퍼스', '개설전공', '학년', '과목종별', '수업세션', '학정번호-분반', '학점', '교과목명', '폐강여부', '담당교수', '강의시간', '강의실', '언어', '원격강의여부', '평가방식', '국외교환학생수강가능', '기타유의사항']
+      const header = ['순번', '학기', '캠퍼스', '개설전공', '과목종별', '학정번호-분반', '학점', '교과목명', '담당교수', '강의시간', '강의실', '수강인원']
       const rows = this.filteredCourses.map((c, idx) => [
         idx + 1,
         c.semester,
         this.uniLabel(c.university),
         c.group,
-        c.grade,
         c.type,
-        c.sessionType,
-        `${c.courseCode}-${c.section}`,
+        `${c.courseCode || ''}-${c.section || ''}`,
         c.credit,
         c.name,
-        c.cancelled ? '폐강' : '',
         c.professor,
-        c.lectureTime,
-        c.room,
-        c.language,
-        c.deliveryMode,
-        c.evaluationMethod,
-        c.exchangeAllowed,
-        c.note
+        c.scheduleText || '미정',
+        c.locationText || '미정',
+        `${c.seatsTaken}/${c.capacity}`
       ])
       const csv = [header, ...rows].map((row) => row.join(',')).join('\n')
       const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
@@ -196,6 +288,10 @@ export default {
       </div>
     </div>
 
+    <LoadingState v-if="loading" />
+    <p v-if="loadError" class="load-error">{{ loadError }}</p>
+
+    <template v-if="!loading">
     <div v-if="isStudent" class="my-registration">
       <div class="my-registration-header">
         <h3>수강신청 목록</h3>
@@ -210,6 +306,8 @@ export default {
             <th>담당교수</th>
             <th>강의시간</th>
             <th>강의실</th>
+            <th>상태</th>
+            <th>관리</th>
           </tr>
         </thead>
         <tbody>
@@ -220,9 +318,13 @@ export default {
             <td>{{ row.professor }}</td>
             <td>{{ row.lectureTime }}</td>
             <td>{{ row.room }}</td>
+            <td>{{ row.status === 'waitlisted' ? '대기중' : '수강중' }}</td>
+            <td>
+              <button type="button" class="btn-withdraw" :disabled="isPending(row.offeringId)" @click="cancelFromMyList(row)">수강철회</button>
+            </td>
           </tr>
           <tr v-if="!myEnrollments.length">
-            <td colspan="6" class="empty">{{ applied.semester }} 학기에 신청한 과목이 없습니다.</td>
+            <td colspan="8" class="empty">{{ applied.semester }} 학기에 신청한 과목이 없습니다.</td>
           </tr>
         </tbody>
       </table>
@@ -249,6 +351,7 @@ export default {
             <option v-for="g in groups" :key="g" :value="g">{{ g }}</option>
           </select>
         </label>
+        <!-- 학년(grade) 필터: 백엔드 과목 데이터에 학년 필드가 없어 주석 처리. 실데이터가 생기면 복원.
         <label class="filter-item">
           <span>학년</span>
           <select v-model="draft.grade">
@@ -260,6 +363,7 @@ export default {
             <option value="4">4학년</option>
           </select>
         </label>
+        -->
         <label class="filter-item">
           <span>학점</span>
           <select v-model="draft.credit">
@@ -279,8 +383,6 @@ export default {
         </label>
         <input v-model="draft.keyword" type="text" class="keyword-input" placeholder="검색어를 입력하세요" />
         <div class="filter-actions">
-          <button type="button" class="btn-secondary" @click="quickFilter('english')">영어강의 전체조회</button>
-          <button type="button" class="btn-secondary" @click="quickFilter('online')">온라인강의 전체조회</button>
           <button type="button" class="btn-primary" @click="runQuery">조회</button>
         </div>
       </div>
@@ -296,36 +398,31 @@ export default {
           <thead>
             <tr>
               <th>순번</th>
-              <th>학기</th>
-              <th>캠퍼스</th>
-              <th>개설전공</th>
-              <th>학년</th>
-              <th>과목종별</th>
-              <th>수업세션</th>
-              <th>학정번호-분반</th>
-              <th>학점</th>
-              <th>교과목명</th>
-              <th>폐강여부</th>
-              <th>담당교수</th>
-              <th>강의시간</th>
-              <th>강의실</th>
-              <th>언어</th>
-              <th>원격강의여부</th>
-              <th>평가방식</th>
-              <th>국외교환학생수강가능</th>
-              <th>기타유의사항</th>
+              <th class="sortable" @click="toggleSort('semester')">학기<span v-if="sortKey === 'semester'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <th class="sortable" @click="toggleSort('university')">캠퍼스<span v-if="sortKey === 'university'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <th class="sortable" @click="toggleSort('group')">개설전공<span v-if="sortKey === 'group'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <!-- 학년: 백엔드 대응 필드 없음 -->
+              <th class="sortable" @click="toggleSort('type')">과목종별<span v-if="sortKey === 'type'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <!-- 수업세션: 백엔드 대응 필드 없음 -->
+              <th class="sortable" @click="toggleSort('courseCode')">학정번호-분반<span v-if="sortKey === 'courseCode'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <th class="sortable" @click="toggleSort('credit')">학점<span v-if="sortKey === 'credit'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <th class="sortable" @click="toggleSort('name')">교과목명<span v-if="sortKey === 'name'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <!-- 폐강여부: 백엔드에 개설취소 개념이 없어 대응 불가 -->
+              <th class="sortable" @click="toggleSort('professor')">담당교수<span v-if="sortKey === 'professor'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <th class="sortable" @click="toggleSort('scheduleText')">강의시간<span v-if="sortKey === 'scheduleText'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <th class="sortable" @click="toggleSort('locationText')">강의실<span v-if="sortKey === 'locationText'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <th class="sortable" @click="toggleSort('seatsTaken')">수강인원<span v-if="sortKey === 'seatsTaken'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+              <!-- 언어 / 평가방식 / 국외교환학생수강가능 / 기타유의사항: 백엔드 대응 필드 없음 -->
               <th v-if="isStudent">수강신청</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(course, idx) in filteredCourses" :key="course.id" :class="{ cancelled: course.cancelled }">
+            <tr v-for="(course, idx) in filteredCourses" :key="course.id">
               <td>{{ idx + 1 }}</td>
               <td>{{ course.semester }}</td>
               <td>{{ uniLabel(course.university) }}</td>
               <td>{{ course.group }}</td>
-              <td>{{ course.grade === 0 ? '전학년' : course.grade }}</td>
               <td>{{ course.type }}</td>
-              <td>{{ course.sessionType }}</td>
               <td>
                 <button type="button" class="name-link" @click="modalCourse = course">{{ course.courseCode }}-{{ course.section }}</button>
               </td>
@@ -333,36 +430,52 @@ export default {
               <td class="name">
                 <button type="button" class="name-link" @click="modalCourse = course">{{ course.name }}</button>
               </td>
-              <td class="cancelled-cell">{{ course.cancelled ? '폐강' : '' }}</td>
               <td>{{ course.professor }}</td>
-              <td>{{ course.lectureTime }}</td>
-              <td>{{ course.room }}</td>
-              <td>{{ course.language }}</td>
-              <td>{{ course.deliveryMode }}</td>
-              <td>{{ course.evaluationMethod }}</td>
-              <td>{{ course.exchangeAllowed }}</td>
-              <td class="note">{{ course.note }}</td>
+              <td>{{ course.scheduleText || '미정' }}</td>
+              <td>{{ course.locationText || '미정' }}</td>
+              <td>{{ course.seatsTaken }}/{{ course.capacity }}</td>
               <td v-if="isStudent">
                 <button
-                  v-if="course.registrationOpen && !course.cancelled && !isEnrolled(course)"
+                  v-if="course.isEnrolled || course.isWaitlisted"
+                  type="button"
+                  class="btn-withdraw"
+                  :disabled="isPending(course.id)"
+                  @click="cancelRegistration(course)"
+                >
+                  {{ course.isWaitlisted ? '대기철회' : '수강철회' }}
+                </button>
+                <button
+                  v-else-if="course.registrationOpen && !isFull(course)"
                   type="button"
                   class="btn-apply"
+                  :disabled="isPending(course.id)"
                   @click="applyRegistration(course)"
                 >
-                  <span class="btn-apply-icon">+</span>수강신청
+                  수강신청
                 </button>
-                <span v-else-if="isEnrolled(course)" class="applied">✓ 신청완료</span>
+                <button
+                  v-else-if="course.registrationOpen && isFull(course) && !isWaitlistFull(course)"
+                  type="button"
+                  class="btn-apply"
+                  :disabled="isPending(course.id)"
+                  @click="applyRegistration(course)"
+                >
+                  대기신청
+                </button>
+                <span v-else-if="course.registrationOpen && isFull(course)" class="closed">마감</span>
                 <span v-else class="closed">-</span>
               </td>
             </tr>
-            <tr v-if="!filteredCourses.length">
-              <td :colspan="isStudent ? 20 : 19" class="empty">조건에 해당하는 개설교과목이 없습니다.</td>
+            <tr v-if="!loading && !filteredCourses.length">
+              <td :colspan="isStudent ? 12 : 11" class="empty">조건에 해당하는 개설교과목이 없습니다.</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
+    </template>
     <SyllabusModal :course="modalCourse" @close="modalCourse = null" />
+    <AlertModal :message="alertMessage" :variant="alertVariant" @close="alertMessage = ''" />
   </section>
 </template>
 
@@ -410,6 +523,15 @@ export default {
   font-size: 13px;
   color: var(--color-muted);
   line-height: 1.6;
+}
+
+.load-error {
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #c0392b;
+  font-size: 13px;
 }
 
 .my-registration {
@@ -608,7 +730,7 @@ export default {
 
 .reg-table {
   width: 100%;
-  min-width: 1400px;
+  min-width: 1100px;
   border-collapse: collapse;
   border: 1px solid var(--color-border);
   font-size: 13px;
@@ -620,6 +742,21 @@ export default {
   border: 1px solid var(--color-border);
   border-bottom: 2px solid var(--color-text);
   white-space: nowrap;
+}
+
+.reg-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.reg-table th.sortable:hover {
+  color: var(--color-primary);
+}
+
+.sort-arrow {
+  margin-left: 4px;
+  font-size: 10px;
+  color: var(--color-primary);
 }
 
 .reg-table td {
@@ -647,35 +784,19 @@ export default {
   text-decoration: underline;
 }
 
-.reg-table td.note {
-  color: var(--color-muted);
-  font-size: 12px;
-}
-
-.reg-table tr.cancelled td {
-  color: var(--color-muted);
-}
-
-.cancelled-cell {
-  color: #c0392b;
-  font-weight: 700;
-}
-
 .reg-table .empty {
   padding: 40px 0;
   color: var(--color-muted);
 }
 
 .btn-apply {
-  position: relative;
-  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 3px;
   background: var(--color-muted);
   color: #fff;
   border: none;
-  border-radius: 3px;
+  border-radius: 0;
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 700;
@@ -683,40 +804,37 @@ export default {
   transition: background-color 0.12s ease;
 }
 
-.btn-apply-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  line-height: 1;
-}
-
-.btn-apply::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -75%;
-  width: 40%;
-  height: 100%;
-  background: linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.7), transparent);
-  transform: skewX(-20deg);
-  transition: left 0.5s ease;
-}
-
 .btn-apply:hover {
   background: var(--color-text);
 }
 
-.btn-apply:hover::after {
-  left: 125%;
+.btn-withdraw {
+  border: 1px solid var(--color-border);
+  background: #fff;
+  border-radius: 3px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-muted);
+  cursor: pointer;
 }
 
-.applied {
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
-  color: var(--color-primary);
-  font-weight: 700;
+.btn-withdraw:hover {
+  border-color: #c0392b;
+  color: #c0392b;
+}
+
+.btn-apply:disabled,
+.btn-withdraw:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-apply:disabled:hover,
+.btn-withdraw:disabled:hover {
+  background: var(--color-muted);
+  border-color: var(--color-border);
+  color: var(--color-muted);
 }
 
 .closed {

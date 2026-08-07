@@ -1,7 +1,8 @@
 <script>
-import courses from '../../data/courses.js'
 import { SEMESTERS } from '../../data/enrollments.js'
 import SyllabusModal from '../../components/portal/SyllabusModal.vue'
+import LoadingState from '../../components/portal/LoadingState.vue'
+import * as coursesApi from '../../api/courses.js'
 
 const UNIVERSITIES = [
   { key: '전체', label: '전체' },
@@ -24,70 +25,105 @@ function defaultFilters() {
     semester: '2026-2',
     university: '전체',
     group: '전체',
-    grade: '전체',
     credit: '전체',
     keywordField: '전체',
     keyword: '',
-    language: '',
     deliveryMode: ''
   }
 }
 
 export default {
   name: 'CourseCatalogView',
-  components: { SyllabusModal },
+  components: { SyllabusModal, LoadingState },
   data() {
     return {
-      courses,
+      courses: [],
+      loading: true,
+      loadError: '',
       semesters: SEMESTERS,
       universities: UNIVERSITIES,
       keywordFields: KEYWORD_FIELDS,
       modalCourse: null,
       draft: defaultFilters(),
-      applied: defaultFilters()
+      applied: defaultFilters(),
+      sortKey: '',
+      sortOrder: 1
     }
+  },
+  async created() {
+    this.loading = true
+    try {
+      this.courses = await coursesApi.list()
+    } catch (e) {
+      this.loadError = '수강편람을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'
+      console.error('[api] courses.list', e)
+    }
+    this.loading = false
   },
   computed: {
     groups() {
-      return Array.from(new Set(this.courses.map((c) => c.group)))
+      return Array.from(new Set(this.courses.map((c) => c.group).filter(Boolean)))
     },
     currentCourses() {
       const f = this.applied
       const keyword = f.keyword.trim().toLowerCase()
-      return this.courses.filter((c) => {
+      const filtered = this.courses.filter((c) => {
         if (c.semester !== f.semester) return false
         if (f.university !== '전체' && c.university !== f.university) return false
         if (f.group !== '전체' && c.group !== f.group) return false
-        if (f.grade !== '전체' && c.grade !== Number(f.grade)) return false
         if (f.credit !== '전체' && c.credit !== Number(f.credit)) return false
-        if (f.language && c.language !== f.language) return false
         if (f.deliveryMode && c.deliveryMode !== f.deliveryMode) return false
         if (keyword) {
-          if (f.keywordField === '학정번호' && !c.courseCode.toLowerCase().includes(keyword)) return false
-          if (f.keywordField === '교과목명' && !c.name.toLowerCase().includes(keyword)) return false
-          if (f.keywordField === '담당교수' && !c.professor.toLowerCase().includes(keyword)) return false
-          if (
-            f.keywordField === '전체' &&
-            !c.name.toLowerCase().includes(keyword) &&
-            !c.professor.toLowerCase().includes(keyword) &&
-            !c.courseCode.toLowerCase().includes(keyword)
-          ) {
+          const code = (c.courseCode || '').toLowerCase()
+          const name = (c.name || '').toLowerCase()
+          const professor = (c.professor || '').toLowerCase()
+          if (f.keywordField === '학정번호' && !code.includes(keyword)) return false
+          if (f.keywordField === '교과목명' && !name.includes(keyword)) return false
+          if (f.keywordField === '담당교수' && !professor.includes(keyword)) return false
+          if (f.keywordField === '전체' && !name.includes(keyword) && !professor.includes(keyword) && !code.includes(keyword)) {
             return false
           }
         }
         return true
       })
+      return this.applySort(filtered)
     }
   },
   methods: {
     runQuery() {
       this.applied = { ...this.draft }
     },
-    quickFilter(type) {
-      this.draft = defaultFilters()
-      if (type === 'english') this.draft.language = '영어'
-      if (type === 'online') this.draft.deliveryMode = '온라인강의'
-      this.applied = { ...this.draft }
+    toggleSort(key) {
+      if (this.sortKey === key) {
+        this.sortOrder = -this.sortOrder
+      } else {
+        this.sortKey = key
+        this.sortOrder = 1
+      }
+    },
+    applySort(list) {
+      if (!this.sortKey) return list
+      const key = this.sortKey
+      const dir = this.sortOrder
+      return [...list].sort((a, b) => {
+        let av = a[key]
+        let bv = b[key]
+        if (av == null) av = ''
+        if (bv == null) bv = ''
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+        return String(av).localeCompare(String(bv), 'ko') * dir
+      })
+    },
+    async openSyllabus(course) {
+      // 목록 API에는 주차별 수업내용(weeks)이 없다 — 모달을 열 때 상세 API로 한 번 더 채운다.
+      this.modalCourse = course
+      if (course.weeks) return
+      try {
+        const detail = await coursesApi.detail(course.id)
+        course.weeks = detail.weeks || []
+      } catch (e) {
+        console.error('[api] courses.detail', e)
+      }
     }
   }
 }
@@ -95,6 +131,10 @@ export default {
 
 <template>
   <section>
+    <LoadingState v-if="loading" />
+    <p v-if="loadError" class="load-error">{{ loadError }}</p>
+
+    <template v-if="!loading">
     <div class="filter-bar">
       <div class="filter-grid">
         <label class="filter-item">
@@ -116,6 +156,7 @@ export default {
             <option v-for="g in groups" :key="g" :value="g">{{ g }}</option>
           </select>
         </label>
+        <!-- 학년(grade) 필터: 백엔드 과목 데이터에 학년 필드가 없어 주석 처리. 실데이터가 생기면 복원.
         <label class="filter-item">
           <span>학년</span>
           <select v-model="draft.grade">
@@ -127,6 +168,7 @@ export default {
             <option value="4">4학년</option>
           </select>
         </label>
+        -->
         <label class="filter-item">
           <span>학점</span>
           <select v-model="draft.credit">
@@ -146,8 +188,6 @@ export default {
         </label>
         <input v-model="draft.keyword" type="text" class="keyword-input" placeholder="검색어를 입력하세요" />
         <div class="filter-actions">
-          <button type="button" class="btn-secondary" @click="quickFilter('english')">영어강의 전체조회</button>
-          <button type="button" class="btn-secondary" @click="quickFilter('online')">온라인강의 전체조회</button>
           <button type="button" class="btn-primary" @click="runQuery">조회</button>
         </div>
       </div>
@@ -157,30 +197,31 @@ export default {
     <table class="subject-table">
       <thead>
         <tr>
-          <th>공통교과 풀</th>
-          <th>교과목명</th>
-          <th>이수구분</th>
-          <th>학점</th>
-          <th>담당교수</th>
-          <th>학기</th>
+          <th class="sortable" @click="toggleSort('group')">공통교과 풀<span v-if="sortKey === 'group'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+          <th class="sortable" @click="toggleSort('name')">교과목명<span v-if="sortKey === 'name'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+          <th class="sortable" @click="toggleSort('type')">이수구분<span v-if="sortKey === 'type'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+          <th class="sortable" @click="toggleSort('credit')">학점<span v-if="sortKey === 'credit'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+          <th class="sortable" @click="toggleSort('professor')">담당교수<span v-if="sortKey === 'professor'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
+          <th class="sortable" @click="toggleSort('semester')">학기<span v-if="sortKey === 'semester'" class="sort-arrow">{{ sortOrder === 1 ? '▲' : '▼' }}</span></th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="course in currentCourses" :key="course.id">
           <td>{{ course.group }}</td>
           <td class="name">
-            <button type="button" class="name-link" @click="modalCourse = course">{{ course.name }}</button>
+            <button type="button" class="name-link" @click="openSyllabus(course)">{{ course.name }}</button>
           </td>
           <td>{{ course.type }}</td>
           <td>{{ course.credit }}</td>
           <td>{{ course.professor }}</td>
           <td>{{ course.semester }}</td>
         </tr>
-        <tr v-if="!currentCourses.length">
+        <tr v-if="!loading && !currentCourses.length">
           <td colspan="6" class="empty">검색 결과가 없습니다.</td>
         </tr>
       </tbody>
     </table>
+    </template>
     <SyllabusModal :course="modalCourse" @close="modalCourse = null" />
   </section>
 </template>
@@ -294,6 +335,15 @@ export default {
   color: var(--color-primary);
 }
 
+.load-error {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #c0392b;
+  font-size: 13px;
+}
+
 h3 {
   font-size: 22px;
   margin: 0 0 16px;
@@ -319,6 +369,21 @@ h3 {
   padding: 12px 8px;
   border: 1px solid var(--color-border);
   border-bottom: 2px solid var(--color-text);
+}
+
+.subject-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.subject-table th.sortable:hover {
+  color: var(--color-primary);
+}
+
+.sort-arrow {
+  margin-left: 4px;
+  font-size: 10px;
+  color: var(--color-primary);
 }
 
 .subject-table td {

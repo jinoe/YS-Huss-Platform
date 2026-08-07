@@ -1,4 +1,8 @@
 <script>
+// 백엔드에 디그리 트랙 이수현황 API가 아직 없다(app/seeds/degree_tracks.py 미작성).
+// 트랙·단계·과목 구성은 실제 커리큘럼 설계지만, 이수 상태는 전부 'not-taken'(미이수)에서
+// 시작한다 — 실데이터 없이 일부를 '완료'로 미리 채워두면 그 자체가 더미가 된다.
+// "시뮬레이션 모드"는 원래부터 실데이터가 아니라 what-if 기능이라 그대로 둔다.
 const TRACKS = [
   {
     key: 'yonsei',
@@ -10,8 +14,8 @@ const TRACKS = [
         key: 'basic',
         label: '기초',
         courses: [
-          { name: 'Culture and Storytelling', credit: 3, required: true, status: 'completed' },
-          { name: 'AI Motion and Visual Narratives', credit: 3, required: false, status: 'completed' },
+          { name: 'Culture and Storytelling', credit: 3, required: true, status: 'not-taken' },
+          { name: 'AI Motion and Visual Narratives', credit: 3, required: false, status: 'not-taken' },
           { name: '사변적사고와 프로세스', credit: 3, required: false, status: 'not-taken' }
         ]
       },
@@ -19,7 +23,7 @@ const TRACKS = [
         key: 'advanced',
         label: '심화',
         courses: [
-          { name: 'Sustainable Development for Future', credit: 3, required: true, status: 'in-progress' },
+          { name: 'Sustainable Development for Future', credit: 3, required: true, status: 'not-taken' },
           { name: '데이터기반 통합디자인리서치', credit: 3, required: false, status: 'not-taken' },
           { name: '스페큘레이티브 디자인', credit: 3, required: false, status: 'not-taken' }
         ]
@@ -44,7 +48,7 @@ const TRACKS = [
         key: 'basic',
         label: '기초',
         courses: [
-          { name: 'AX 내러티브 모션 그래픽스 1', credit: 3, required: true, status: 'completed' },
+          { name: 'AX 내러티브 모션 그래픽스 1', credit: 3, required: true, status: 'not-taken' },
           { name: 'Design Thinking', credit: 3, required: false, status: 'not-taken' },
           { name: 'Design for Future Product 1', credit: 3, required: false, status: 'not-taken' }
         ]

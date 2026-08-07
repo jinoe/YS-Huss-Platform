@@ -1,30 +1,41 @@
 <script>
-import courses from '../../data/courses.js'
 import SyllabusDocument from '../../components/portal/SyllabusDocument.vue'
+import LoadingState from '../../components/portal/LoadingState.vue'
+import * as coursesApi from '../../api/courses.js'
 
 export default {
   name: 'SyllabusView',
-  components: { SyllabusDocument },
+  components: { SyllabusDocument, LoadingState },
   data() {
     return {
-      courses
+      course: null,
+      loading: true,
+      loadError: ''
     }
   },
-  computed: {
-    course() {
-      return this.courses.find((c) => c.id === Number(this.$route.params.id))
+  async created() {
+    this.loading = true
+    try {
+      this.course = await coursesApi.detail(Number(this.$route.params.id))
+    } catch (e) {
+      this.loadError = '과목을 찾을 수 없습니다.'
+      console.error('[api] courses.detail', e)
     }
+    this.loading = false
   }
 }
 </script>
 
 <template>
-  <section v-if="course" class="page">
+  <section v-if="loading" class="page">
+    <LoadingState />
+  </section>
+  <section v-else-if="course" class="page">
     <router-link :to="`/portal/courses/${course.id}`" class="back-link">← {{ course.name }}</router-link>
     <SyllabusDocument :course="course" />
   </section>
   <section v-else class="page">
-    <p class="not-found">과목을 찾을 수 없습니다.</p>
+    <p class="not-found">{{ loadError || '과목을 찾을 수 없습니다.' }}</p>
     <router-link to="/portal/courses" class="back-link">← 수강편람 목록</router-link>
   </section>
 </template>

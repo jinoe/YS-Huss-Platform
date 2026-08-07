@@ -18,6 +18,15 @@ npm run build     # 프로덕션 빌드
 npm run preview   # 빌드 결과 미리보기
 ```
 
+## 버전 관리
+
+- **Semantic Versioning** (`MAJOR.MINOR.PATCH`, `package.json`의 `version` 필드). 백엔드(`huss-backend`)도 동일 규칙으로 독립적으로 버전을 관리한다 — 두 레포는 서로 다른 배포 단위라 버전이 항상 같이 움직이지 않아도 된다.
+- 정식 오픈(5개 대학 대상 실배포) 전까지는 `0.x.y`를 유지한다. `1.0.0`은 정식 오픈 시점에만 올린다.
+- `PATCH`(`0.1.x`): 버그 수정. `MINOR`(`0.x.0`): 기능/화면 단위 추가. `MAJOR`: 정식 오픈 전엔 올리지 않음.
+- **브랜치**: 기존 관행대로 `main` 단일 브랜치에 직접 커밋한다(별도 `develop` 없음). Vercel은 `main` push를 그대로 프로덕션에 반영한다.
+- 의미 있는 단위(데모·마일스톤 직전 등)로 `package.json` 버전을 올리고 `git tag vX.Y.Z`를 찍는다. 이 시점이 랩미팅/보고서에서 "이 버전 기준"이라고 참조할 체크포인트가 된다.
+- **커밋 메시지**: Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:` 등 접두사 + 한글 설명). `huss-backend`도 동일 컨벤션을 쓴다.
+
 ## 구조
 
 - `src/App.vue` — 루트 컴포넌트. `$route.meta.bare`가 true면 마케팅 `AppHeader`/`AppFooter` 없이 `<router-view/>`만 렌더링 (포탈 섹션용)

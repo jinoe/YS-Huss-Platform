@@ -1,58 +1,73 @@
 <script>
 import ServiceIcon from '../../components/portal/ServiceIcon.vue'
-import session from '../../data/session.js'
-import { STUDENT_POOL, PROFESSOR_POOL } from '../../data/currentUser.js'
+import session, { getTier, getDisplayName, clearSession } from '../../data/session.js'
+
+// 사이드바 탭 5단계 tier 매핑. router/index.js의 라우트별 meta.tiers와 반드시 짝을 맞춰야 한다.
+// 정리 문서: frontend/docs/portal-roles.md
+const NAV_ITEMS = [
+  { labelKey: 'portal.sidebar.mypage', to: '/portal', icon: 'mypage', tiers: ['student', 'professor', 'core-professor', 'staff', 'system-admin'] },
+  { labelKey: 'portal.sidebar.courses', to: '/portal/courses', icon: 'courses', tiers: ['student', 'professor', 'core-professor', 'staff'] },
+  { labelKey: 'portal.sidebar.registration', to: '/portal/registration', icon: 'registration', tiers: ['student'] },
+  { labelKey: 'portal.sidebar.microdegree', to: '/portal/microdegree', icon: 'microdegree', tiers: ['student'] },
+  { labelKey: 'portal.sidebar.counseling', to: '/portal/counseling', icon: 'counseling', tiers: ['student', 'professor', 'core-professor'] },
+  { labelKey: 'portal.sidebar.subjects', to: '/portal/subjects', icon: 'subjects', tiers: ['professor', 'core-professor'] },
+  { labelKey: 'portal.sidebar.kpi', to: '/portal/kpi', icon: 'kpi', tiers: ['core-professor', 'staff', 'system-admin'] },
+  { labelKey: 'portal.sidebar.admin', to: '/portal/admin', icon: 'admin', tiers: ['core-professor', 'staff', 'system-admin'] }
+]
+
+// 강의실(과목 상세)로 취급하는 라우트들 — 상단 타이틀·뒤로가기 표시 여부 판정에 같이 쓴다.
+const CLASSROOM_ROUTE_NAMES = ['portal-course-detail', 'portal-course-syllabus', 'portal-notice-detail']
 
 export default {
   name: 'PortalLayout',
   components: { ServiceIcon },
   data() {
-    return {
-      session,
-      navItems: [
-        { labelKey: 'portal.sidebar.mypage', to: '/portal', icon: 'mypage' },
-        { labelKey: 'portal.sidebar.courses', to: '/portal/courses', icon: 'courses' },
-        { labelKey: 'portal.sidebar.registration', to: '/portal/registration', icon: 'registration' },
-        { labelKey: 'portal.sidebar.microdegree', to: '/portal/microdegree', icon: 'microdegree' },
-        { labelKey: 'portal.sidebar.counseling', to: '/portal/counseling', icon: 'counseling' },
-        { labelKey: 'portal.sidebar.subjects', to: '/portal/subjects', icon: 'subjects' },
-        { labelKey: 'portal.sidebar.kpi', to: '/portal/kpi', icon: 'kpi' },
-        { labelKey: 'portal.sidebar.admin', to: '/portal/admin', icon: 'admin' }
-      ]
-    }
+    return { session }
   },
   computed: {
+    tier() {
+      return getTier(this.session)
+    },
+    navItems() {
+      return NAV_ITEMS.filter((item) => item.tiers.includes(this.tier))
+    },
     currentLabel() {
+      // 강의실(과목 상세) 계열 화면은 마이페이지의 "강의실 입장"으로만 들어오는
+      // 화면이라 수강편람 섹션이 아니다 — 사이드바 하이라이트도, 상단 타이틀도
+      // 별도 취급한다.
+      if (CLASSROOM_ROUTE_NAMES.includes(this.$route.name)) {
+        return '강의실'
+      }
       const matched = this.navItems.find((item) => this.isActive(item.to))
       return matched ? this.$t(matched.labelKey) : ''
     },
     userDisplayName() {
-      return this.session.role === 'professor' ? `${this.session.professorName} 교수` : this.session.studentName
+      return getDisplayName(this.session)
+    },
+    showBackButton() {
+      return CLASSROOM_ROUTE_NAMES.includes(this.$route.name)
     }
   },
   methods: {
     isActive(to) {
       if (to === '/portal') return this.$route.path === '/portal'
+      if (to === '/portal/courses') return this.$route.name === 'portal-courses'
       return this.$route.path.startsWith(to)
     },
     toggleLang() {
       this.$i18n.locale = this.$i18n.locale === 'ko' ? 'en' : 'ko'
     },
-    setRole(role) {
-      this.session.role = role
-    },
-    randomizeIdentity() {
-      if (this.session.role === 'student') {
-        const pool = STUDENT_POOL.filter((name) => name !== this.session.studentName)
-        this.session.studentName = pool[Math.floor(Math.random() * pool.length)]
+    goBack() {
+      if (window.history.state && window.history.state.back) {
+        this.$router.back()
+      } else if (this.$route.name === 'portal-notice-detail') {
+        this.$router.push(`/portal/courses/${this.$route.params.id}`)
       } else {
-        const pool = PROFESSOR_POOL.filter((name) => name !== this.session.professorName)
-        this.session.professorName = pool[Math.floor(Math.random() * pool.length)]
+        this.$router.push('/portal/courses')
       }
-      if (this.$route.path !== '/portal') this.$router.push('/portal')
     },
     logout() {
-      this.session.isAuthenticated = false
+      clearSession()
       this.$router.push('/portal/login')
     }
   }
@@ -81,16 +96,11 @@ export default {
     </aside>
     <div class="portal-main">
       <header class="portal-topbar">
-        <h1>{{ currentLabel }}</h1>
+        <div class="topbar-title">
+          <button v-if="showBackButton" type="button" class="topbar-back" @click="goBack">← 뒤로가기</button>
+          <h1>{{ currentLabel }}</h1>
+        </div>
         <div class="portal-user">
-          <div class="test-panel">
-            <span class="test-panel-title">{{ $t('portal.test.title') }}</span>
-            <div class="role-toggle">
-              <button type="button" :class="{ active: session.role === 'student' }" @click="setRole('student')">{{ $t('portal.role.student') }}</button>
-              <button type="button" :class="{ active: session.role === 'professor' }" @click="setRole('professor')">{{ $t('portal.role.professor') }}</button>
-            </div>
-            <button type="button" class="btn-random" @click="randomizeIdentity">{{ $t('portal.test.random') }}</button>
-          </div>
           <button type="button" class="lang-toggle" @click="toggleLang">{{ $t('header.langToggle') }}</button>
           <span>{{ userDisplayName }}님</span>
           <button type="button" @click="logout">{{ $t('portal.logout') }}</button>
@@ -184,7 +194,10 @@ export default {
 }
 
 .portal-topbar {
-  background: #fff;
+  /* 흰색이면 아래 콘텐츠 카드(.page 등)와 구분이 안 돼서 "흰 박스가 위아래로
+     겹쳐 보인다"는 지적이 있었다 — 헤더임을 분명히 하려고 프라이머리 블루
+     톤을 옅게 깔아 콘텐츠 카드와 시각적으로 구분되게 했다. */
+  background: linear-gradient(160deg, rgba(0, 31, 66, 0.04), rgba(0, 56, 118, 0.06));
   border-bottom: 1px solid var(--color-border);
   padding: 20px 32px;
   display: flex;
@@ -195,6 +208,25 @@ export default {
 .portal-topbar h1 {
   font-size: 20px;
   margin: 0;
+}
+
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.topbar-back {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.topbar-back:hover {
+  color: var(--color-primary);
 }
 
 .portal-user {
@@ -216,61 +248,6 @@ export default {
 
 .portal-user .lang-toggle {
   font-weight: 700;
-}
-
-.test-panel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px dashed var(--color-border);
-  border-radius: 999px;
-  padding: 4px 8px 4px 12px;
-}
-
-.test-panel-title {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  color: var(--color-muted);
-  white-space: nowrap;
-}
-
-.role-toggle {
-  display: flex;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.role-toggle button {
-  flex: 1;
-  border: none;
-  border-radius: 0;
-  background: #fff;
-  padding: 4px 12px;
-  font-size: 12px;
-  color: var(--color-muted);
-}
-
-.role-toggle button.active {
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: 700;
-}
-
-.btn-random {
-  border: 1px solid var(--color-border);
-  background: var(--bg-soft);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-muted);
-}
-
-.btn-random:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
 }
 
 .portal-content {

@@ -1,7 +1,9 @@
 <script>
-import counselingSessions from '../../data/counselingSessions.js'
 import session from '../../data/session.js'
 
+// 백엔드에 상담 API가 아직 없다(app/models/counseling.py는 있지만 라우터 미작성).
+// 그래서 예약/이력 목록은 항상 빈 상태이고, 신청 폼도 로컬에 가짜로 쌓지 않고
+// 안내 메시지만 보여준다.
 const STATUS_CLASS = { 예정: 'scheduled', 완료: 'completed', 취소: 'cancelled' }
 
 export default {
@@ -22,7 +24,8 @@ export default {
       ],
       counselingTypes: ['학업', '진로', '나노디그리', '비교과', '외국인 학생 지원'],
       counselors: ['김소영 교수', '전진호 교수', '정진경 교수'],
-      sessions: counselingSessions,
+      sessions: [],
+      submitNotice: '',
       form: { type: '', counselor: '', date: '', time: '', memo: '' }
     }
   },
@@ -66,21 +69,7 @@ export default {
       return '★'.repeat(n) + '☆'.repeat(5 - n)
     },
     submitForm() {
-      this.sessions.unshift({
-        id: Date.now(),
-        studentName: this.session.studentName,
-        ...this.form,
-        status: '예정',
-        satisfaction: null
-      })
-      this.form = { type: '', counselor: '', date: '', time: '', memo: '' }
-      this.activeTab = 'reservations'
-    },
-    cancelSession(session) {
-      session.status = '취소'
-    },
-    completeSession(session) {
-      session.status = '완료'
+      this.submitNotice = '상담 예약 기능은 아직 백엔드와 연동되지 않았습니다. 신청 내용은 저장되지 않았습니다.'
     },
     toggleDetail(session) {
       this.expandedId = this.expandedId === session.id ? null : session.id
@@ -133,6 +122,7 @@ export default {
           <label>상담 내용</label>
           <textarea v-model="form.memo" rows="4" placeholder="상담받고 싶은 내용을 간단히 작성해 주세요" />
         </div>
+        <p v-if="submitNotice" class="submit-notice">{{ submitNotice }}</p>
         <div class="form-actions">
           <button type="submit" class="btn-primary">신청하기</button>
         </div>
@@ -156,10 +146,7 @@ export default {
             <td>{{ session.time }}</td>
             <td>{{ session.counselor }}</td>
             <td><span class="status" :class="statusClass(session.status)">{{ session.status }}</span></td>
-            <td>
-              <button v-if="session.status === '예정'" type="button" class="btn-secondary" @click="cancelSession(session)">취소</button>
-              <span v-else>-</span>
-            </td>
+            <td>-</td>
           </tr>
           <tr v-if="!reservations.length">
             <td colspan="6" class="empty">예약 내역이 없습니다.</td>
@@ -214,10 +201,7 @@ export default {
               <td>{{ session.date }}</td>
               <td>{{ session.time }}</td>
               <td><span class="status" :class="statusClass(session.status)">{{ session.status }}</span></td>
-              <td class="actions" @click.stop>
-                <button type="button" class="btn-secondary" @click="completeSession(session)">완료 처리</button>
-                <button type="button" class="btn-secondary" @click="cancelSession(session)">취소</button>
-              </td>
+              <td>-</td>
             </tr>
             <tr v-if="expandedId === session.id" class="detail-row">
               <td colspan="6">
@@ -357,6 +341,15 @@ export default {
   padding: 12px 28px;
   font-size: 14px;
   font-weight: 700;
+}
+
+.submit-notice {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fff8e1;
+  color: #8a6d00;
+  font-size: 13px;
 }
 
 .btn-secondary {

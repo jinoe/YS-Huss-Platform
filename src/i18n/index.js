@@ -35,8 +35,7 @@ const messages = {
       notice: '공지사항',
       quicklinks: '바로가기',
       recommend: '추천 교과목·프로그램',
-      role: { student: '학생', professor: '교수' },
-      test: { title: '테스트용', random: '랜덤 변경' }
+      tier: { student: '학생', professor: '일반교수', 'core-professor': '핵심교수', staff: '운영진', 'system-admin': '관리자' }
     }
   },
   en: {
@@ -48,7 +47,7 @@ const messages = {
       bulletin: { title: 'Information', notice: 'Notices', partnerNotice: 'Partner Notices', data: 'Resources', faq: 'FAQ', schedule: 'Schedule' }
     },
     header: {
-      subtitle: 'Humanities & Social Sciences Convergence Talent Program',
+      subtitle: 'Humanities Utmost Sharing System',
       lms: 'LMS',
       langToggle: 'KOR'
     },
@@ -73,8 +72,7 @@ const messages = {
       notice: 'Notices',
       quicklinks: 'Quick Links',
       recommend: 'Recommended for You',
-      role: { student: 'Student', professor: 'Professor' },
-      test: { title: 'Test Only', random: 'Randomize' }
+      tier: { student: 'Student', professor: 'Professor', 'core-professor': 'Core Professor', staff: 'Staff', 'system-admin': 'Admin' }
     }
   }
 }

@@ -5,7 +5,17 @@ import IntroLayout from '../views/intro/IntroLayout.vue'
 import SupportLayout from '../views/support/SupportLayout.vue'
 import ShareLayout from '../views/share/ShareLayout.vue'
 import BulletinLayout from '../views/bulletin/BulletinLayout.vue'
-import session from '../data/session.js'
+import session, { getTier, clearSession } from '../data/session.js'
+import * as authApi from '../api/auth.js'
+
+// 사이드바 탭별 접근 가능 tier. PortalLayout.vue의 navItems와 반드시 짝을 맞춰야 한다.
+// 정리 문서: frontend/docs/portal-roles.md
+const TIER_STUDENT = 'student'
+const TIER_PROFESSOR = 'professor'
+const TIER_CORE_PROFESSOR = 'core-professor'
+const TIER_STAFF = 'staff'
+const TIER_SYSTEM_ADMIN = 'system-admin'
+const ALL_TIERS = [TIER_STUDENT, TIER_PROFESSOR, TIER_CORE_PROFESSOR, TIER_STAFF, TIER_SYSTEM_ADMIN]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -194,61 +204,109 @@ const router = createRouter({
         {
           path: '',
           name: 'portal-home',
-          component: () => import('../views/portal/PortalHomeView.vue')
+          component: () => import('../views/portal/PortalHomeView.vue'),
+          meta: { tiers: ALL_TIERS }
         },
         {
           path: 'courses',
           name: 'portal-courses',
-          component: () => import('../views/portal/CourseCatalogView.vue')
+          component: () => import('../views/portal/CourseCatalogView.vue'),
+          meta: { tiers: [TIER_STUDENT, TIER_PROFESSOR, TIER_CORE_PROFESSOR, TIER_STAFF] }
         },
         {
           path: 'courses/:id',
           name: 'portal-course-detail',
-          component: () => import('../views/portal/CourseDetailView.vue')
+          component: () => import('../views/portal/CourseDetailView.vue'),
+          meta: { tiers: [TIER_STUDENT, TIER_PROFESSOR, TIER_CORE_PROFESSOR, TIER_STAFF] }
         },
         {
           path: 'courses/:id/syllabus',
           name: 'portal-course-syllabus',
-          component: () => import('../views/portal/SyllabusView.vue')
+          component: () => import('../views/portal/SyllabusView.vue'),
+          meta: { tiers: [TIER_STUDENT, TIER_PROFESSOR, TIER_CORE_PROFESSOR, TIER_STAFF] }
+        },
+        {
+          path: 'courses/:id/notices/:noticeId',
+          name: 'portal-notice-detail',
+          component: () => import('../views/portal/NoticeDetailView.vue'),
+          meta: { tiers: [TIER_STUDENT, TIER_PROFESSOR, TIER_CORE_PROFESSOR, TIER_STAFF] }
         },
         {
           path: 'registration',
           name: 'portal-registration',
-          component: () => import('../views/portal/RegistrationView.vue')
+          component: () => import('../views/portal/RegistrationView.vue'),
+          meta: { tiers: [TIER_STUDENT] }
         },
         {
           path: 'kpi',
           name: 'portal-kpi',
-          component: () => import('../views/portal/KpiDashboardView.vue')
+          component: () => import('../views/portal/KpiDashboardView.vue'),
+          meta: { tiers: [TIER_CORE_PROFESSOR, TIER_STAFF, TIER_SYSTEM_ADMIN] }
         },
         {
           path: 'microdegree',
           name: 'portal-microdegree',
-          component: () => import('../views/portal/MicrodegreeSimulatorView.vue')
+          component: () => import('../views/portal/MicrodegreeSimulatorView.vue'),
+          meta: { tiers: [TIER_STUDENT] }
         },
         {
           path: 'counseling',
           name: 'portal-counseling',
-          component: () => import('../views/portal/CounselingView.vue')
+          component: () => import('../views/portal/CounselingView.vue'),
+          meta: { tiers: [TIER_STUDENT, TIER_PROFESSOR, TIER_CORE_PROFESSOR] }
         },
         {
           path: 'subjects',
           name: 'portal-subjects',
-          component: () => import('../views/portal/SubjectManagementView.vue')
+          component: () => import('../views/portal/SubjectManagementView.vue'),
+          meta: { tiers: [TIER_PROFESSOR, TIER_CORE_PROFESSOR] }
         },
         {
           path: 'admin',
           name: 'portal-admin',
-          component: () => import('../views/portal/AdminDashboardView.vue')
+          component: () => import('../views/portal/AdminDashboardView.vue'),
+          meta: { tiers: [TIER_CORE_PROFESSOR, TIER_STAFF, TIER_SYSTEM_ADMIN] }
         }
       ]
     }
   ]
 })
 
-router.beforeEach((to) => {
+// 새로고침하면 session(메모리 상태)은 초기화되지만 localStorage의 accessToken은 남아있다.
+// 토큰이 있으면 /auth/me로 한 번 검증해서 로그인 상태를 복원한다(만료/무효면 로그인 화면으로).
+let rehydrateAttempted = false
+
+async function rehydrateSession() {
+  rehydrateAttempted = true
+  const token = localStorage.getItem('accessToken')
+  if (!token) return
+  session.accessToken = token
+  session.refreshToken = localStorage.getItem('refreshToken')
+  try {
+    const me = await authApi.getMe()
+    session.role = me.profile_type === 'professor' ? 'professor' : 'student'
+    session.roles = me.roles || []
+    if (me.profile_type === 'professor') {
+      session.professorName = me.name || session.professorName
+    } else if (me.profile_type === 'staff') {
+      session.staffName = me.name || session.staffName
+    } else {
+      session.studentName = me.name || session.studentName
+    }
+    session.isAuthenticated = true
+  } catch (e) {
+    clearSession()
+  }
+}
+
+router.beforeEach(async (to) => {
   if (to.path.startsWith('/portal') && to.name !== 'portal-login' && !session.isAuthenticated) {
-    return { name: 'portal-login' }
+    if (!rehydrateAttempted) await rehydrateSession()
+    if (!session.isAuthenticated) return { name: 'portal-login' }
+  }
+  // 역할별 탭 접근 제어: 이 역할이 볼 수 없는 탭으로 직접 URL 진입하면 마이페이지로 돌려보낸다.
+  if (to.meta?.tiers && !to.meta.tiers.includes(getTier(session))) {
+    return { name: 'portal-home' }
   }
 })
 

@@ -1,65 +1,102 @@
 <script>
-import counselingSessions from '../../data/counselingSessions.js'
-import notices from '../../data/notices.js'
-import courses from '../../data/courses.js'
-import session from '../../data/session.js'
-import { enrollmentsForStudentName } from '../../data/queries.js'
+import session, { getDisplayNameWithRole, getTier } from '../../data/session.js'
+import LoadingState from '../../components/portal/LoadingState.vue'
+import * as coursesApi from '../../api/courses.js'
+import * as enrollmentsApi from '../../api/enrollments.js'
+import * as professorApi from '../../api/professor.js'
+
+const OPEN_ENROLLMENT_STATUSES = ['applied', 'enrolled']
 
 export default {
   name: 'PortalHomeView',
+  components: { LoadingState },
   data() {
     return {
       session,
-      stats: [
-        { label: '이수 학점', value: 12 },
-        { label: '진행중 과정', value: 2 },
-        { label: '예정 상담', value: 1 }
+      loading: true,
+      loadError: '',
+      myCourses: [],
+      completedCredits: 0,
+      ongoingCount: 0,
+      // 상담 예약 알림/신규 공지/예정 상담: 백엔드에 상담·공지 API가 없어 항상 빈 상태(0)로 둔다.
+      notifications: [
+        { label: '학사 알림', count: 0 },
+        { label: '상담 예약 알림', count: 0 },
+        { label: '신규 공지', count: 0 }
       ],
-      notices: [
-        { tag: '학사', title: '2026학년도 2학기 마이크로디그리 신청 안내', date: '2026-07-20' },
-        { tag: '상담', title: '학사지도 상담 예약 시스템 오픈 안내', date: '2026-07-15' },
-        { tag: '전체', title: 'HUSS 포탈 베타 오픈 안내', date: '2026-07-10' }
-      ],
+      // 공지사항/추천 교과목: 백엔드에 대응 API가 없어 빈 상태로 둔다(더미 항목을 보여주지 않음).
+      notices: [],
+      recommendations: [],
       quickLinks: [
         { label: '공지사항', to: '/bulletin' },
         { label: '자료실', to: '/bulletin' },
         { label: 'FAQ', to: '/bulletin' },
         { label: '사업단 홈페이지', to: '/' }
-      ],
-      recommendations: [
-        { title: 'AI Motion and Visual Narratives', type: '교과목', reason: '인간중심 AI 미래경험 디자인 트랙을 이수 중인 회원님께 추천합니다.' },
-        { title: 'AI 해커톤', type: '비교과', reason: '최근 참여 이력을 기반으로 추천합니다.' },
-        { title: 'Future Life UX Design', type: '교과목', reason: 'AX 라이프 혁신 디자인 트랙에 관심 있는 학생에게 추천합니다.' }
       ]
     }
   },
+  async created() {
+    this.loading = true
+    try {
+      if (this.isProfessorRole) {
+        // GET /professor/offerings는 담당 과목이 있는 교수(일반/핵심교수)만
+        // 호출 가능하다 — 운영진/시스템관리자 계정은 이 API가 403을 준다.
+        const offerings = await professorApi.myOfferings()
+        this.myCourses = offerings.map((o) => ({
+          id: o.id,
+          name: o.name,
+          professor: o.professor,
+          credit: o.credit,
+          semester: o.semester,
+          group: null
+        }))
+      } else if (this.isStudent) {
+        const [courses, enrollments] = await Promise.all([coursesApi.list(), enrollmentsApi.mine()])
+        this.completedCredits = enrollments.filter((e) => e.status === 'completed').reduce((sum, e) => sum + (e.credit || 0), 0)
+        const ongoing = enrollments.filter((e) => OPEN_ENROLLMENT_STATUSES.includes(e.status))
+        this.ongoingCount = ongoing.length
+        this.myCourses = ongoing.map((e) => ({
+          id: e.offeringId,
+          name: e.courseName,
+          professor: e.professor,
+          credit: e.credit,
+          semester: e.semester,
+          group: courses.find((c) => c.id === e.offeringId)?.group || null
+        }))
+      }
+    } catch (e) {
+      this.loadError = '마이페이지 정보를 불러오지 못했습니다.'
+      console.error('[api] portal home', e)
+    }
+    this.loading = false
+  },
   computed: {
-    notifications() {
-      const upcomingCounseling = counselingSessions.filter(
-        (s) => s.studentName === this.session.studentName && s.status === '예정'
-      ).length
-      const recentNotices = notices.filter((n) => n.date >= '2026-07-01').length
-      return [
-        { label: '학사 알림', count: 0 },
-        { label: '상담 예약 알림', count: upcomingCounseling },
-        { label: '신규 공지', count: recentNotices }
-      ]
+    isStudent() {
+      return getTier(this.session) === 'student'
     },
-    isProfessor() {
-      return this.session.role === 'professor'
+    isProfessorRole() {
+      return (this.session.roles || []).includes('professor')
     },
     userDisplayName() {
-      return this.isProfessor ? `${this.session.professorName} 교수` : this.session.studentName
+      return getDisplayNameWithRole(this.session)
     },
     myCoursesTitle() {
-      return this.isProfessor ? '담당 과목' : '수강 중인 과목'
+      return this.isStudent ? '수강 중인 과목' : '담당 과목'
     },
-    myCourses() {
-      if (this.isProfessor) {
-        return courses.filter((c) => c.professor === this.session.professorName)
+    stats() {
+      // 이수 학점은 학생 개념이라 학생이 아니면 보여주지 않는다
+      // (교수/운영진/관리자 계정에 "이수 학점: 0"이 뜨던 걸 없앰).
+      if (!this.isStudent) {
+        return [
+          { label: '담당 과목', value: this.myCourses.length },
+          { label: '예정 상담', value: 0 }
+        ]
       }
-      const myCourseIds = enrollmentsForStudentName(this.session.studentName, { status: '수강' }).map((e) => e.courseId)
-      return courses.filter((c) => myCourseIds.includes(c.id))
+      return [
+        { label: '이수 학점', value: this.completedCredits },
+        { label: '진행중 과정', value: this.ongoingCount },
+        { label: '예정 상담', value: 0 }
+      ]
     }
   }
 }
@@ -71,7 +108,7 @@ export default {
       <div class="profile-card">
         <span class="badge">HUSS</span>
         <p class="program-name">인문사회융합인재양성사업단</p>
-        <h2 class="user-name">{{ userDisplayName }} 님</h2>
+        <h2 class="user-name">{{ userDisplayName }}</h2>
         <div class="stat-row">
           <div v-for="stat in stats" :key="stat.label" class="stat">
             <span class="stat-value">{{ stat.value }}</span>
@@ -88,16 +125,20 @@ export default {
     </aside>
 
     <section class="main-panel">
+      <LoadingState v-if="loading" />
+      <p v-if="loadError" class="load-error">{{ loadError }}</p>
+
+      <template v-if="!loading">
       <h3>{{ myCoursesTitle }}</h3>
       <div class="course-grid">
-        <div v-for="course in myCourses" :key="course.id" class="course-card">
-          <span class="notice-tag">{{ course.group }}</span>
+        <router-link v-for="course in myCourses" :key="course.id" :to="`/portal/courses/${course.id}`" class="course-card">
+          <span v-if="course.group" class="notice-tag">{{ course.group }}</span>
           <p class="course-title">{{ course.name }}</p>
           <p class="course-meta">{{ course.professor }} · {{ course.credit }}학점 · {{ course.semester }}</p>
-          <router-link :to="`/portal/courses/${course.id}`" class="course-enter">강의실 입장 →</router-link>
-        </div>
-        <p v-if="!myCourses.length" class="course-empty">
-          {{ isProfessor ? '담당 중인 과목이 없습니다.' : '수강 중인 과목이 없습니다. 수강편람에서 과목을 신청해 보세요.' }}
+          <span class="course-enter">강의실 입장 →</span>
+        </router-link>
+        <p v-if="!loading && !myCourses.length" class="course-empty">
+          {{ isStudent ? '수강 중인 과목이 없습니다. 수강편람에서 과목을 신청해 보세요.' : '담당 중인 과목이 없습니다.' }}
         </p>
       </div>
 
@@ -108,9 +149,10 @@ export default {
           <span class="notice-title">{{ notice.title }}</span>
           <span class="notice-date">{{ notice.date }}</span>
         </li>
+        <li v-if="!notices.length" class="notice-empty">등록된 공지사항이 없습니다.</li>
       </ul>
 
-      <template v-if="!isProfessor">
+      <template v-if="isStudent">
         <h3>추천 교과목·프로그램</h3>
         <div class="recommend-grid">
           <div v-for="item in recommendations" :key="item.title" class="recommend-card">
@@ -118,6 +160,7 @@ export default {
             <p class="recommend-title">{{ item.title }}</p>
             <p class="recommend-reason">{{ item.reason }}</p>
           </div>
+          <p v-if="!recommendations.length" class="course-empty">아직 추천 교과목이 없습니다.</p>
         </div>
       </template>
 
@@ -127,6 +170,7 @@ export default {
           {{ link.label }}
         </router-link>
       </div>
+      </template>
     </section>
   </div>
 </template>
@@ -259,6 +303,15 @@ h3 {
   padding: 24px;
 }
 
+.load-error {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #c0392b;
+  font-size: 13px;
+}
+
 .notice-list {
   list-style: none;
   margin: 0 0 32px;
@@ -272,6 +325,11 @@ h3 {
   padding: 10px 0;
   border-bottom: 1px solid var(--color-border);
   font-size: 13px;
+}
+
+.notice-empty {
+  color: var(--color-muted);
+  padding: 10px 0;
 }
 
 .notice-tag {
@@ -305,10 +363,20 @@ h3 {
 
 .course-card {
   position: relative;
+  display: block;
   border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 16px;
   overflow: hidden;
+  background: #fff;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.course-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-primary);
 }
 
 .course-card::before {
@@ -367,7 +435,7 @@ h3 {
   top: 0;
   left: 0;
   width: 28px;
-  height: 5px;
+  height: 6px;
   background: var(--color-primary);
 }
 
